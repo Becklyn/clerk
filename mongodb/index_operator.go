@@ -22,7 +22,7 @@ func NewMongoIndexOperator(client *mongo.Client, collection *clerk.Collection) *
 	}
 }
 
-func (o *MongodbIndexOperator) List(ctx context.Context) ([]*clerk.Index, error) {
+func (o *MongodbIndexOperator) List(ctx context.Context) ([]*clerk.IndexCreate, error) {
 	cursor, err := o.client.
 		Database(o.collection.Database).
 		Collection(o.collection.Name).
@@ -32,13 +32,13 @@ func (o *MongodbIndexOperator) List(ctx context.Context) ([]*clerk.Index, error)
 		return nil, err
 	}
 
-	indices := []*clerk.Index{}
+	indices := []*clerk.IndexCreate{}
 	models := []primitive.D{}
 	if err := cursor.All(ctx, &models); err != nil {
 		return nil, err
 	}
 	for _, indexModel := range models {
-		index := &clerk.Index{}
+		index := &clerk.IndexCreate{}
 		for _, kv := range indexModel {
 			switch kv.Key {
 			case "name":
@@ -61,7 +61,7 @@ func (o *MongodbIndexOperator) List(ctx context.Context) ([]*clerk.Index, error)
 	return indices, nil
 }
 
-func (o *MongodbIndexOperator) Create(ctx context.Context, index *clerk.Index) error {
+func (o *MongodbIndexOperator) Create(ctx context.Context, index *clerk.IndexCreate) error {
 	options := options.Index()
 	if index.Name != "" {
 		options.SetName(index.Name)
@@ -88,6 +88,16 @@ func (o *MongodbIndexOperator) Create(ctx context.Context, index *clerk.Index) e
 		Collection(o.collection.Name).
 		Indexes().
 		CreateOne(ctx, model)
+
+	return err
+}
+
+func (o *MongodbIndexOperator) Delete(ctx context.Context, index *clerk.IndexDelete) error {
+	_, err := o.client.
+		Database(o.collection.Database).
+		Collection(o.collection.Name).
+		Indexes().
+		DropOne(ctx, index.Name)
 
 	return err
 }

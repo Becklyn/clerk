@@ -5,6 +5,13 @@ import "context"
 type IndexCreator interface {
 	Create(
 		ctx context.Context,
-		index *Index,
+		index *IndexCreate,
+	) error
+}
+
+type IndexDeleter interface {
+	Delete(
+		ctx context.Context,
+		index *IndexDelete,
 	) error
 }
