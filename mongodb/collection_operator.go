@@ -87,3 +87,7 @@ func (o *MongodbCollectionOperator) Drop(
 		Collection(collection.Name).
 		Drop(ctx)
 }
+
+func (o *MongodbCollectionOperator) Indices(collection *clerk.Collection) *MongodbIndexOperator {
+	return NewMongoIndexOperator(o.client, collection)
+}
