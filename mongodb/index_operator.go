@@ -61,7 +61,7 @@ func (o *MongodbIndexOperator) List(ctx context.Context) ([]*clerk.IndexCreate, 
 	return indices, nil
 }
 
-func (o *MongodbIndexOperator) Create(ctx context.Context, index *clerk.IndexCreate) error {
+func (o *MongodbIndexOperator) Create(ctx context.Context, index *clerk.IndexCreate) (string, error) {
 	options := options.Index()
 	if index.Name != "" {
 		options.SetName(index.Name)
@@ -83,13 +83,15 @@ func (o *MongodbIndexOperator) Create(ctx context.Context, index *clerk.IndexCre
 		Options: options,
 	}
 
-	_, err := o.client.
+	name, err := o.client.
 		Database(o.collection.Database).
 		Collection(o.collection.Name).
 		Indexes().
 		CreateOne(ctx, model)
-
-	return err
+	if err != nil {
+		return "", err
+	}
+	return name, nil
 }
 
 func (o *MongodbIndexOperator) Delete(ctx context.Context, index *clerk.IndexDelete) error {

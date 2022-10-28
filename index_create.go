@@ -27,6 +27,6 @@ func (i *IndexCreate) MarkUnique() *IndexCreate {
 	return i
 }
 
-func (i *IndexCreate) Execute(ctx context.Context, creator IndexCreator) error {
+func (i *IndexCreate) Execute(ctx context.Context, creator IndexCreator) (string, error) {
 	return creator.Create(ctx, i)
 }

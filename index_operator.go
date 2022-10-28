@@ -6,7 +6,7 @@ type IndexCreator interface {
 	Create(
 		ctx context.Context,
 		index *IndexCreate,
-	) error
+	) (string, error)
 }
 
 type IndexDeleter interface {
