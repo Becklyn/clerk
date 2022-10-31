@@ -11,34 +11,37 @@ import (
 )
 
 type MongodbIndexOperator struct {
-	client     *mongo.Client
-	collection *clerk.Collection
+	client *mongo.Client
 }
 
-func NewMongoIndexOperator(client *mongo.Client, collection *clerk.Collection) *MongodbIndexOperator {
+func NewMongoIndexOperator(connection *MongodbConnection) *MongodbIndexOperator {
 	return &MongodbIndexOperator{
-		client:     client,
-		collection: collection,
+		client: connection.client,
 	}
 }
 
-func (o *MongodbIndexOperator) List(ctx context.Context) ([]*clerk.IndexCreate, error) {
+func (o *MongodbIndexOperator) List(
+	ctx context.Context,
+	collection *clerk.Collection,
+) ([]*clerk.Index, error) {
 	cursor, err := o.client.
-		Database(o.collection.Database).
-		Collection(o.collection.Name).
+		Database(collection.Database).
+		Collection(collection.Name).
 		Indexes().
 		List(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	indices := []*clerk.IndexCreate{}
+	indices := []*clerk.Index{}
 	models := []primitive.D{}
 	if err := cursor.All(ctx, &models); err != nil {
 		return nil, err
 	}
 	for _, indexModel := range models {
-		index := &clerk.IndexCreate{}
+		index := &clerk.Index{
+			Collection: collection,
+		}
 		for _, kv := range indexModel {
 			switch kv.Key {
 			case "name":
@@ -61,43 +64,53 @@ func (o *MongodbIndexOperator) List(ctx context.Context) ([]*clerk.IndexCreate, 
 	return indices, nil
 }
 
-func (o *MongodbIndexOperator) Create(ctx context.Context, index *clerk.IndexCreate) (string, error) {
-	options := options.Index()
-	if index.Name != "" {
-		options.SetName(index.Name)
-	}
-	if index.Unique {
-		options.SetUnique(true)
+func (o *MongodbIndexOperator) Create(
+	ctx context.Context,
+	collection *clerk.Collection,
+	indices ...*clerk.IndexCreate,
+) ([]string, error) {
+	models := []mongo.IndexModel{}
+	for _, index := range indices {
+		keys := bson.D{}
+		for _, field := range index.Fields {
+			keys = append(keys, bson.E{
+				Key:   field.Key,
+				Value: field.Type,
+			})
+		}
+
+		options := options.
+			Index().
+			SetName(index.Name).
+			SetUnique(index.Unique)
+
+		model := mongo.IndexModel{
+			Keys:    keys,
+			Options: options,
+		}
+
+		models = append(models, model)
 	}
 
-	modelKeys := bson.D{}
-	for _, field := range index.Fields {
-		modelKeys = append(modelKeys, bson.E{
-			Key:   field.Key,
-			Value: field.Type,
-		})
-	}
-
-	model := mongo.IndexModel{
-		Keys:    modelKeys,
-		Options: options,
-	}
-
-	name, err := o.client.
-		Database(o.collection.Database).
-		Collection(o.collection.Name).
+	names, err := o.client.
+		Database(collection.Database).
+		Collection(collection.Name).
 		Indexes().
-		CreateOne(ctx, model)
+		CreateMany(ctx, models)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return name, nil
+	return names, nil
 }
 
-func (o *MongodbIndexOperator) Delete(ctx context.Context, index *clerk.IndexDelete) error {
+func (o *MongodbIndexOperator) Delete(
+	ctx context.Context,
+	collection *clerk.Collection,
+	index *clerk.IndexDelete,
+) error {
 	_, err := o.client.
-		Database(o.collection.Database).
-		Collection(o.collection.Name).
+		Database(collection.Database).
+		Collection(collection.Name).
 		Indexes().
 		DropOne(ctx, index.Name)
 

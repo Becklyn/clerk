@@ -3,13 +3,16 @@ package clerk
 import "context"
 
 type IndexCreate struct {
-	Fields []*IndexField
-	Name   string
-	Unique bool
+	Collection *Collection
+	Fields     []*IndexField
+	Name       string
+	Unique     bool
 }
 
-func NewIndexCreate() *IndexCreate {
-	return &IndexCreate{}
+func NewIndexCreate(collection *Collection) *IndexCreate {
+	return &IndexCreate{
+		Collection: collection,
+	}
 }
 
 func (i *IndexCreate) AddField(field *IndexField) *IndexCreate {
@@ -28,5 +31,9 @@ func (i *IndexCreate) MarkUnique() *IndexCreate {
 }
 
 func (i *IndexCreate) Execute(ctx context.Context, creator IndexCreator) (string, error) {
-	return creator.Create(ctx, i)
+	names, err := creator.Create(ctx, i.Collection, i)
+	if err != nil {
+		return "", err
+	}
+	return names[0], nil
 }

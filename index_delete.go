@@ -3,15 +3,17 @@ package clerk
 import "context"
 
 type IndexDelete struct {
-	Name string
+	Collection *Collection
+	Name       string
 }
 
-func NewIndexDelete(name string) *IndexDelete {
+func NewIndexDelete(collection *Collection, name string) *IndexDelete {
 	return &IndexDelete{
-		Name: name,
+		Collection: collection,
+		Name:       name,
 	}
 }
 
 func (i *IndexDelete) Execute(ctx context.Context, deleter IndexDeleter) error {
-	return deleter.Delete(ctx, i)
+	return deleter.Delete(ctx, i.Collection, i)
 }
