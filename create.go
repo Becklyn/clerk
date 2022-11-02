@@ -2,18 +2,23 @@ package clerk
 
 import "context"
 
-type create[T any] struct {
-	collection *Collection
-	data       T
+type Create[T any] struct {
+	creator Creator[T]
+	Data    []T
 }
 
-func NewCreate[T any](collection *Collection, data T) *create[T] {
-	return &create[T]{
-		collection: collection,
-		data:       data,
+func NewCreate[T any](creator Creator[T]) *Create[T] {
+	return &Create[T]{
+		creator: creator,
+		Data:    []T{},
 	}
 }
 
-func (c *create[T]) Execute(ctx context.Context, creator Creator[T]) error {
-	return creator.Create(ctx, c.collection, c.data)
+func (c *Create[T]) With(data ...T) *Create[T] {
+	c.Data = append(c.Data, data...)
+	return c
+}
+
+func (c *Create[T]) Commit(ctx context.Context) error {
+	return c.creator.ExecuteCreate(ctx, c)
 }

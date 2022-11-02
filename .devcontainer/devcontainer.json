@@ -1,7 +1,7 @@
 {
 	"name": "clerk",
 	"build": {
-		"dockerfile": "Dockerfile",
+		"dockerfile": "Dockerfile"
 	},
 	"settings": {
 		"go.useLanguageServer": true,
@@ -12,5 +12,5 @@
 		"github.vscode-pull-request-github",
 		"github.copilot",
 		"golang.go"
-	],
+	]
 }

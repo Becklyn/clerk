@@ -1,20 +1,11 @@
 package clerk
 
 type Collection struct {
-	Database string
+	Database *Database
 	Name     string
 }
 
-func NewCollection(name string) *Collection {
-	return &Collection{
-		Name: name,
-	}
-}
-
-func NewCollectionWithDatabase(
-	database string,
-	name string,
-) *Collection {
+func NewCollection(database *Database, name string) *Collection {
 	return &Collection{
 		Database: database,
 		Name:     name,

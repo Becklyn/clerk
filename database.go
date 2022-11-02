@@ -9,7 +9,3 @@ func NewDatabase(name string) *Database {
 		Name: name,
 	}
 }
-
-func (d *Database) Collection(name string) *Collection {
-	return NewCollectionWithDatabase(d.Name, name)
-}

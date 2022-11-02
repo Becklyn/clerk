@@ -1,54 +1,63 @@
 package clerk
 
-import (
-	"context"
-)
+import "context"
 
-type query[T any] struct {
-	collection *Collection
-	filter     map[string]any
-	sorting    map[string]bool
-	skip       int
-	take       int
+type Query[T any] struct {
+	querier Querier[T]
+	Filters []Filter
+	Sorting map[string]*Order
+	Range   *Range
 }
 
-func NewQuery[T any](collection *Collection) *query[T] {
-	return &query[T]{
-		collection: collection,
-		filter:     map[string]any{},
-		sorting:    map[string]bool{},
-		skip:       -1,
-		take:       -1,
+func NewQuery[T any](querier Querier[T]) *Query[T] {
+	return &Query[T]{
+		querier: querier,
+		Filters: []Filter{},
+		Sorting: map[string]*Order{},
+		Range:   nil,
 	}
 }
 
-func (q *query[T]) Where(key string, value any) *query[T] {
-	q.filter[key] = value
+func (q *Query[T]) Where(filter Filter) *Query[T] {
+	q.Filters = append(q.Filters, filter)
 	return q
 }
 
-func (q *query[T]) SortBy(key string, asc bool) *query[T] {
-	q.sorting[key] = asc
+func (q *Query[T]) Sort(key string, order ...*Order) *Query[T] {
+	if len(order) > 0 {
+		q.Sorting[key] = order[0]
+	} else {
+		q.Sorting[key] = NewAscendingOrder()
+	}
 	return q
 }
 
-func (q *query[T]) Skip(skip int) *query[T] {
-	q.skip = skip
+func (q *Query[T]) In(rng *Range) *Query[T] {
+	q.Range = rng
 	return q
 }
 
-func (q *query[T]) Take(take int) *query[T] {
-	q.take = take
-	return q
+func (q *Query[T]) Channel(ctx context.Context) (<-chan T, error) {
+	return q.querier.ExecuteQuery(ctx, q)
 }
 
-func (q *query[T]) Execute(ctx context.Context, querier Querier[T]) (<-chan T, error) {
-	return querier.Query(
-		ctx,
-		q.collection,
-		q.filter,
-		q.sorting,
-		q.skip,
-		q.take,
-	)
+func (q *Query[T]) All(ctx context.Context) ([]T, error) {
+	channel, err := q.Channel(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var results []T
+	for result := range channel {
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func (q *Query[T]) Single(ctx context.Context) (T, error) {
+	channel, err := q.Channel(ctx)
+	if err != nil {
+		var empty T
+		return empty, err
+	}
+	return <-channel, nil
 }

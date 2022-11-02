@@ -1,3 +1,9 @@
+# v2.0.0
+
+- (bc) All new application programming interface
+- (bc) Drops support for Meilisearch
+- (feature) Adds support for index CRUD operations
+
 # v1.2.0
 
 - (feature) Add support for collection listing

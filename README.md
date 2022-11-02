@@ -4,27 +4,31 @@
 
 ## Installation
 
-Adding _clerk_ to your Go module is as easy as calling this command in your project
+Adding *clerk* to your Go module is as easy as calling this command in your project
 
 ```shell
-go get github.com/Becklyn/clerk
+go get github.com/Becklyn/clerk/v2
 ```
 
 ## Supported databases
 
-_clerk_ has builtin support for the following database/search engines:
+*clerk* has builtin support for the following database engines:
 
 - [MongoDB](https://www.mongodb.com/) - MongoDB is a document-oriented database
-- [Meilisearch](https://www.meilisearch.com/) - Meilisearch is a powerful and fast search engine
+
+Support for any other engines can be added by implementing their supported operations.  
+Have a look at the *MongoDB* implementation in the `/mongodb` directory as a starting point.
 
 ## Usage
 
-Being a minimalistic library, _clerk_ only provides the basics. The rest is up to your specific need.
+Being a minimalistic library, _clerk_ only provides the basics. The rest is up to your specific need.  
+Each operation in *clerk* consists of a generic operation and uses an *operator* that is specific to the database engine.  
+The examples given below all use the *MongoDB* operators.
 
 ### Creating a connection
 
 ```go
-connection, err := mongodb.NewMongoConnection("mongodb://root:root@localhost:27017")
+connection, err := mongodb.NewConnection(context.Background(), "mongodb://localhost:27017")
 if err != nil {
 	panic(err)
 }
@@ -36,70 +40,51 @@ defer connection.Close(func(err error) {
 })
 ```
 
-### Using a mongodb transaction
+### Using a transaction
 
 ```go
-connection, err := mongodb.NewMongoConnection("mongodb://root:root@localhost:27017")
-if err != nil {
-	panic(err)
-}
+databaseOperator := mongodb.NewDatabaseOperator(connection)
 
-defer connection.Close(func(err error) {
-	if err != nil {
-		panic(err)
-	}
+clerk.NewTransaction(databaseOperator).Run(context.Background(), func(ctx context.Context) error {
+    // Add operations that should be executed in a transaction here ...
+    return nil
 })
-
-err = connection.WithTransaction(func (ctx context.Context) error {
-	// use the ctx when doing operations on the database and it will be part of the transaction automatically
-
-	return nil
-})
-if err != nil {
-	panic(err)
-}
 ```
-
-### Defining a database operator instance
-
-```go
-operator := mongodb.NewMongodbOperator[T](connection)
-```
-
-The generic parameter T defines the data type which the operator can interact with.
-An operator has to be defined for each data type in use with _clerk_.
 
 ### Defining a database & collection
 
 ```go
-collection := clerk.NewDatabase("foo").Collection("bar")
+database := clerk.NewDatabase("foo")
+collection := clerk.NewCollection(database, "bar")
 ```
 
-Certain operators only work with collections and don't need a database:
+### Defining a database operator
 
 ```go
-collection := clerk.NewCollection("foo")
+tOperator := mongodb.NewOperator[T](connection, collection)
 ```
 
-### Persisting a data in a collection
+The generic parameter T defines the data type which the operator can interact with.
+An operator has to be defined for each data type in use with *clerk*.
+
+### Persisting new data in a collection
 
 ```go
 type Message struct {
     Id   string `bson:"_id"`
-    Body string
+    Body string `bson:"body"`
 }
 
-createCtx, createCancel := context.WithTimeout(
-    context.Background(),
-    time.Second * 5,
-)
+messageOperator := mongodb.NewOperator[*Message](connection, collection)
+
+createCtx, createCancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer createCancel()
 
-create := clerk.NewCreate(collection, Message{
-    Id:   "0",
-    Body: "Hello World",
-})
-if err := create.Execute(createCtx, operator); err != nil {
+err := clerk.NewCreate[*Message](messageOperator).
+    With(&Message{Id: 1, Body: "Hello World"}).
+    With(&Message{Id: 2, Body: "Hello Buddy"}).
+    Commit(createCtx)
+if err != nil {
     panic(err)
 }
 ```
@@ -109,59 +94,43 @@ if err := create.Execute(createCtx, operator); err != nil {
 ```go
 type Message struct {
     Id   string `bson:"_id"`
-    Body string
+    Body string `bson:"body"`
 }
 
-results := []Message{}
+messageOperator := mongodb.NewOperator[*Message](connection, collection)
 
-queryCtx, queryCancel := context.WithTimeout(
-    context.Background(),
-    time.Second * 5,
-)
+queryCtx, queryCancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer queryCancel()
 
-query := clerk.NewQuery[Message](collection).Where("_id", "0")
-queryChan, err := query.Execute(queryCtx, operator)
+message, err := clerk.NewQuery[*Message](messageOperator).
+    Where(clerk.NewEquals("_id", 1)).
+    Single(queryCtx)
 if err != nil {
     panic(err)
 }
 
-for result := range queryChan {
-    results := append(results, result)
-}
-
-fmt.Println(results...)
+fmt.Printf("Message: %+v", message)
 ```
 
-### Sorting the collection
-
 ```go
-type Message struct {
-    Id   string `bson:"_id"`
-    Body string
-}
+messageOperator := mongodb.NewOperator[*Message](connection, collection)
 
-results := []Message{}
-
-queryCtx, queryCancel := context.WithTimeout(
-    context.Background(),
-    time.Second * 5,
-)
+queryCtx, queryCancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer queryCancel()
 
-query := clerk.NewQuery[Message](collection).SortBy("_id", true)
-queryChan, err := query.Execute(queryCtx, operator)
+messages, err := clerk.NewQuery[*Message](messageOperator).
+    Where(clerk.NewRegex("body", "^Hello.*$")).
+    Sort("_id", clerk.NewAscendingOrder()).
+    All(queryCtx)
 if err != nil {
     panic(err)
 }
 
-for result := range queryChan {
-    results := append(results, result)
+for _, message := range messages {
+    fmt.Printf("Message: %+v", message)
 }
-
-fmt.Println(results...)
 ```
 
 ---
 
-Copyright © 2022 - The cozy team **& contributors**
+Copyright © 2022 **Becklyn GmbH**

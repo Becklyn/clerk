@@ -1,4 +1,3 @@
-FROM golang:1.17-alpine
+FROM golang:1.19-buster
 
-RUN apk update && \
-    apk add git build-base openssh-client
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1

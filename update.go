@@ -2,32 +2,38 @@ package clerk
 
 import "context"
 
-type update[T any] struct {
-	collection *Collection
-	filter     map[string]any
-	data       T
-	upsert     bool
+type Update[T any] struct {
+	updater      Updater[T]
+	Filters      []Filter
+	ShouldUpsert bool
+	Data         T
 }
 
-func NewUpdate[T any](collection *Collection, data T) *update[T] {
-	return &update[T]{
-		collection: collection,
-		filter:     map[string]any{},
-		data:       data,
-		upsert:     false,
+func NewUpdate[T any](updater Updater[T]) *Update[T] {
+	var empty T
+	return &Update[T]{
+		updater:      updater,
+		Filters:      []Filter{},
+		ShouldUpsert: false,
+		Data:         empty,
 	}
 }
 
-func (c *update[T]) Where(key string, value any) *update[T] {
-	c.filter[key] = value
-	return c
+func (u *Update[T]) Where(filter Filter) *Update[T] {
+	u.Filters = append(u.Filters, filter)
+	return u
 }
 
-func (c *update[T]) WithUpsert() *update[T] {
-	c.upsert = true
-	return c
+func (u *Update[T]) Upsert() *Update[T] {
+	u.ShouldUpsert = true
+	return u
 }
 
-func (c *update[T]) Execute(ctx context.Context, updater Updater[T]) error {
-	return updater.Update(ctx, c.collection, c.filter, c.data, c.upsert)
+func (u *Update[T]) With(data T) *Update[T] {
+	u.Data = data
+	return u
+}
+
+func (u *Update[T]) Commit(ctx context.Context) error {
+	return u.updater.ExecuteUpdate(ctx, u)
 }

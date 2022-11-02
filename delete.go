@@ -2,23 +2,23 @@ package clerk
 
 import "context"
 
-type delete[T any] struct {
-	collection *Collection
-	filter     map[string]any
+type Delete[T any] struct {
+	deleter Deleter[T]
+	Filters []Filter
 }
 
-func NewDelete[T any](collection *Collection) *delete[T] {
-	return &delete[T]{
-		collection: collection,
-		filter:     map[string]any{},
+func NewDelete[T any](deleter Deleter[T]) *Delete[T] {
+	return &Delete[T]{
+		deleter: deleter,
+		Filters: []Filter{},
 	}
 }
 
-func (d *delete[T]) Where(key string, value any) *delete[T] {
-	d.filter[key] = value
+func (d *Delete[T]) Where(filter Filter) *Delete[T] {
+	d.Filters = append(d.Filters, filter)
 	return d
 }
 
-func (d *delete[T]) Execute(ctx context.Context, deleter Deleter[T]) error {
-	return deleter.Delete(ctx, d.collection, d.filter)
+func (d *Delete[T]) Commit(ctx context.Context) (int, error) {
+	return d.deleter.ExecuteDelete(ctx, d)
 }

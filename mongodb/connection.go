@@ -6,20 +6,21 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-type MongodbConnection struct {
+type Connection struct {
 	ctx    context.Context
 	client *mongo.Client
 }
 
-func NewMongoConnection(ctx context.Context, url string) (*MongodbConnection, error) {
+func NewConnection(
+	ctx context.Context,
+	uri string,
+) (*Connection, error) {
 	var err error
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(url))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}
@@ -30,37 +31,13 @@ func NewMongoConnection(ctx context.Context, url string) (*MongodbConnection, er
 		return nil, err
 	}
 
-	return &MongodbConnection{
+	return &Connection{
 		ctx:    ctx,
 		client: client,
 	}, nil
 }
 
-type MongodbTransactionFunc func(ctx context.Context) error
-
-func (c *MongodbConnection) WithTransaction(ctx context.Context, fn MongodbTransactionFunc) error {
-	session, err := c.client.StartSession()
-	if err != nil {
-		return err
-	}
-	defer session.EndSession(context.Background())
-
-	wc := writeconcern.New(writeconcern.WMajority())
-	rc := readconcern.Snapshot()
-	txnOpts := options.
-		Transaction().
-		SetWriteConcern(wc).
-		SetReadConcern(rc)
-
-	sessionCallback := func(sessionContext mongo.SessionContext) (any, error) {
-		return nil, fn(sessionContext)
-	}
-
-	_, err = session.WithTransaction(ctx, sessionCallback, txnOpts)
-	return err
-}
-
-func (c *MongodbConnection) Close(handler func(err error)) {
+func (c *Connection) Close(handler func(err error)) {
 	err := c.client.Disconnect(c.ctx)
 	if handler != nil {
 		handler(err)
