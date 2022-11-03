@@ -13,12 +13,14 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.18
+      - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
+
       - name: Check out code
         uses: actions/checkout@v3
+
       - uses: actions/cache@v3
         with:
           path: |
@@ -27,10 +29,20 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           args: --enable gofmt --timeout=3m
+
+      - name: Start MongoDB
+        run: docker run -d -p 27017:27017 --name mongodb mongo:latest
+
       - name: Run Tests
         run: go test `go list ./...` -timeout 15s -count=1
+
+      - name: Stop MongoDB
+        run: |
+          docker stop mongodb
+          docker rm mongodb
