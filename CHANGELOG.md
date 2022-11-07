@@ -1,3 +1,7 @@
+# v2.0.2
+
+- (feature) Add database delete operaton for mongodb
+
 # v2.0.1
 
 - (bug) Make operator types public
