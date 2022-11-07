@@ -1,12 +1,12 @@
 package mongodb
 
-type databaseOperator struct {
+type DatabaseOperator struct {
 	databaseQuerier
 	transactor
 }
 
-func NewDatabaseOperator(connection *Connection) *databaseOperator {
-	return &databaseOperator{
+func NewDatabaseOperator(connection *Connection) *DatabaseOperator {
+	return &DatabaseOperator{
 		databaseQuerier: *newDatabaseQuerier(connection),
 		transactor:      *newTransactor(connection),
 	}

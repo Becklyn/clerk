@@ -1,3 +1,7 @@
+# v2.0.1
+
+- (bug) Make operator types public
+
 # v2.0.0
 
 - (bc) All new application programming interface
