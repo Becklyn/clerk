@@ -1,3 +1,7 @@
+# v3.0.0
+
+- (bc) Add config struct and default timeouts
+
 # v2.0.2
 
 - (feature) Add database delete operaton for mongodb
