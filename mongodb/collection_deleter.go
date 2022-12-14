@@ -5,19 +5,17 @@ import (
 	"strings"
 
 	"github.com/Becklyn/clerk/v2"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type collectionDeleter struct {
-	client   *mongo.Client
-	database *clerk.Database
+	connection *Connection
+	database   *clerk.Database
 }
 
 func newCollectionDeleter(connection *Connection, database *clerk.Database) *collectionDeleter {
 	return &collectionDeleter{
-		client:   connection.client,
-		database: database,
+		connection: connection,
+		database:   database,
 	}
 }
 
@@ -35,11 +33,14 @@ func (d *collectionDeleter) ExecuteDelete(
 		}
 	}
 
+	deleteCtx, cancel := d.connection.config.GetContext(ctx)
+	defer cancel()
+
 	for i, name := range names {
-		err := d.client.
+		err := d.connection.client.
 			Database(d.database.Name).
 			Collection(name).
-			Drop(ctx)
+			Drop(deleteCtx)
 		if err != nil {
 			return i, err
 		}

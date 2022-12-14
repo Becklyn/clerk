@@ -5,18 +5,17 @@ import (
 
 	"github.com/Becklyn/clerk/v2"
 
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type updater[T any] struct {
-	client     *mongo.Client
+	connection *Connection
 	collection *clerk.Collection
 }
 
 func newUpdater[T any](connection *Connection, collection *clerk.Collection) *updater[T] {
 	return &updater[T]{
-		client:     connection.client,
+		connection: connection,
 		collection: collection,
 	}
 }
@@ -30,10 +29,13 @@ func (u *updater[T]) ExecuteUpdate(ctx context.Context, update *clerk.Update[T])
 		return err
 	}
 
-	_, err = u.client.
+	updaterCtx, cancel := u.connection.config.GetContext(ctx)
+	defer cancel()
+
+	_, err = u.connection.client.
 		Database(u.collection.Database.Name).
 		Collection(u.collection.Name).
-		ReplaceOne(ctx, filters, update.Data, opts)
+		ReplaceOne(updaterCtx, filters, update.Data, opts)
 
 	return err
 }

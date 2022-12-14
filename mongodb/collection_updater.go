@@ -7,20 +7,17 @@ import (
 	"github.com/Becklyn/clerk/v2"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type collectionUpdater struct {
 	connection *Connection
-	client     *mongo.Client
 	database   *clerk.Database
 }
 
 func newCollectionUpdater(connection *Connection, database *clerk.Database) *collectionUpdater {
 	return &collectionUpdater{
 		connection: connection,
-		client:     connection.client,
 		database:   database,
 	}
 }
@@ -39,26 +36,29 @@ func (u *collectionUpdater) ExecuteUpdate(
 		}
 	}
 
-	err := newTransactor(u.connection).ExecuteTransaction(ctx, func(ctx context.Context) error {
+	updateCtx, cancel := u.connection.config.GetContext(ctx)
+	defer cancel()
+
+	err := newTransactor(u.connection).ExecuteTransaction(updateCtx, func(ctx context.Context) error {
 		for _, name := range names {
-			cursor, err := u.client.
+			cursor, err := u.connection.client.
 				Database(u.database.Name).
 				Collection(name).
-				Find(ctx, bson.D{}, options.Find())
+				Find(updateCtx, bson.D{}, options.Find())
 			if err != nil {
 				return err
 			}
 
-			for cursor.Next(ctx) {
+			for cursor.Next(updateCtx) {
 				var result any
 				if err := cursor.Decode(&result); err != nil {
 					return err
 				}
 
-				_, err = u.client.
+				_, err = u.connection.client.
 					Database(u.database.Name).
 					Collection(update.Data.Name).
-					InsertOne(ctx, result)
+					InsertOne(updateCtx, result)
 				if err != nil {
 					return err
 				}
@@ -71,10 +71,10 @@ func (u *collectionUpdater) ExecuteUpdate(
 	}
 
 	for _, name := range names {
-		err := u.client.
+		err := u.connection.client.
 			Database(u.database.Name).
 			Collection(name).
-			Drop(ctx)
+			Drop(updateCtx)
 		if err != nil {
 			return err
 		}

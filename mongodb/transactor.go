@@ -12,21 +12,24 @@ import (
 )
 
 type transactor struct {
-	client *mongo.Client
+	connection *Connection
 }
 
 func newTransactor(connection *Connection) *transactor {
 	return &transactor{
-		client: connection.client,
+		connection: connection,
 	}
 }
 
 func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.TransactionFn) error {
-	session, err := t.client.StartSession()
+	transactionCtx, cancel := t.connection.config.GetContext(ctx)
+	defer cancel()
+
+	session, err := t.connection.client.StartSession()
 	if err != nil {
 		return err
 	}
-	defer session.EndSession(ctx)
+	defer session.EndSession(transactionCtx)
 
 	wc := writeconcern.New(writeconcern.WMajority())
 	rc := readconcern.Snapshot()
@@ -38,6 +41,6 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 		return nil, fn(sessCtx)
 	}
 
-	_, err = session.WithTransaction(ctx, sessionCallback, opts)
+	_, err = session.WithTransaction(transactionCtx, sessionCallback, opts)
 	return err
 }

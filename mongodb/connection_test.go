@@ -25,7 +25,7 @@ func NewIntegrationConnection(t *testing.T) *mongodb.Connection {
 
 	connection, err := mongodb.NewConnection(
 		context.Background(),
-		fmt.Sprintf("mongodb://%s:27017", host),
+		mongodb.DefaultConfig(fmt.Sprintf("mongodb://%s:27017", host)),
 	)
 	assert.NoError(t, err)
 	return connection

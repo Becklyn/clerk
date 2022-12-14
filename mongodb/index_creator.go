@@ -11,13 +11,13 @@ import (
 )
 
 type indexCreator struct {
-	client     *mongo.Client
+	connection *Connection
 	collection *clerk.Collection
 }
 
 func newIndexCreator(connection *Connection, collection *clerk.Collection) *indexCreator {
 	return &indexCreator{
-		client:     connection.client,
+		connection: connection,
 		collection: collection,
 	}
 }
@@ -57,11 +57,14 @@ func (c *indexCreator) ExecuteCreate(
 		})
 	}
 
-	_, err := c.client.
+	createCtx, cancel := c.connection.config.GetContext(ctx)
+	defer cancel()
+
+	_, err := c.connection.client.
 		Database(c.collection.Database.Name).
 		Collection(c.collection.Name).
 		Indexes().
-		CreateMany(ctx, models)
+		CreateMany(createCtx, models)
 
 	return err
 }

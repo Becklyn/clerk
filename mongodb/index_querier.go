@@ -6,17 +6,16 @@ import (
 	"github.com/Becklyn/clerk/v2"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type indexQuerier struct {
-	client     *mongo.Client
+	connection *Connection
 	collection *clerk.Collection
 }
 
 func newIndexQuerier(connection *Connection, collection *clerk.Collection) *indexQuerier {
 	return &indexQuerier{
-		client:     connection.client,
+		connection: connection,
 		collection: collection,
 	}
 }
@@ -25,7 +24,7 @@ func (q *indexQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Index],
 ) (<-chan *clerk.Index, error) {
-	cursor, err := q.client.
+	cursor, err := q.connection.client.
 		Database(q.collection.Database.Name).
 		Collection(q.collection.Name).
 		Indexes().
