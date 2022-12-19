@@ -5,18 +5,16 @@ import (
 	"strings"
 
 	"github.com/Becklyn/clerk/v2"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type indexDeleter struct {
-	client     *mongo.Client
+	connection *Connection
 	collection *clerk.Collection
 }
 
 func newIndexDeleter(connection *Connection, collection *clerk.Collection) *indexDeleter {
 	return &indexDeleter{
-		client:     connection.client,
+		connection: connection,
 		collection: collection,
 	}
 }
@@ -35,22 +33,25 @@ func (d *indexDeleter) ExecuteDelete(
 		}
 	}
 
+	deleteCtx, cancel := d.connection.config.GetContext(ctx)
+	defer cancel()
+
 	if len(names) == 0 {
-		_, err := d.client.
+		_, err := d.connection.client.
 			Database(d.collection.Database.Name).
 			Collection(d.collection.Name).
 			Indexes().
-			DropAll(ctx)
+			DropAll(deleteCtx)
 
 		return 0, err
 	}
 
 	for i, name := range names {
-		_, err := d.client.
+		_, err := d.connection.client.
 			Database(d.collection.Database.Name).
 			Collection(d.collection.Name).
 			Indexes().
-			DropOne(ctx, name)
+			DropOne(deleteCtx, name)
 		if err != nil {
 			return i, err
 		}

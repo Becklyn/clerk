@@ -4,18 +4,16 @@ import (
 	"context"
 
 	"github.com/Becklyn/clerk/v2"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type creator[T any] struct {
-	client     *mongo.Client
+	connection *Connection
 	collection *clerk.Collection
 }
 
 func newCreator[T any](connection *Connection, collection *clerk.Collection) *creator[T] {
 	return &creator[T]{
-		client:     connection.client,
+		connection: connection,
 		collection: collection,
 	}
 }
@@ -29,10 +27,13 @@ func (c *creator[T]) ExecuteCreate(
 		data[i] = item
 	}
 
-	_, err := c.client.
+	createCtx, cancel := c.connection.config.GetContext(ctx)
+	defer cancel()
+
+	_, err := c.connection.client.
 		Database(c.collection.Database.Name).
 		Collection(c.collection.Name).
-		InsertMany(ctx, data)
+		InsertMany(createCtx, data)
 
 	return err
 }

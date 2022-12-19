@@ -6,18 +6,17 @@ import (
 	"github.com/Becklyn/clerk/v2"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type querier[T any] struct {
-	client     *mongo.Client
+	connection *Connection
 	collection *clerk.Collection
 }
 
 func newQuerier[T any](connection *Connection, collection *clerk.Collection) *querier[T] {
 	return &querier[T]{
-		client:     connection.client,
+		connection: connection,
 		collection: collection,
 	}
 }
@@ -56,10 +55,13 @@ func (q *querier[T]) ExecuteQuery(
 		return nil, err
 	}
 
-	cursor, err := q.client.
+	queryCtx, cancel := q.connection.config.GetContext(ctx)
+	defer cancel()
+
+	cursor, err := q.connection.client.
 		Database(q.collection.Database.Name).
 		Collection(q.collection.Name).
-		Find(ctx, filters, opts)
+		Find(queryCtx, filters, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +69,10 @@ func (q *querier[T]) ExecuteQuery(
 	channel := make(chan T)
 
 	go func() {
-		defer cursor.Close(ctx)
+		defer cursor.Close(queryCtx)
 		defer close(channel)
 
-		for cursor.Next(ctx) {
+		for cursor.Next(queryCtx) {
 			var result T
 			if err := cursor.Decode(&result); err != nil {
 				return

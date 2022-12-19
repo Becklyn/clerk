@@ -5,19 +5,18 @@ import (
 
 	"github.com/Becklyn/clerk/v2"
 
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type collectionQuerier struct {
-	client   *mongo.Client
-	database *clerk.Database
+	connection *Connection
+	database   *clerk.Database
 }
 
 func newCollectionQuerier(connection *Connection, database *clerk.Database) *collectionQuerier {
 	return &collectionQuerier{
-		client:   connection.client,
-		database: database,
+		connection: connection,
+		database:   database,
 	}
 }
 
@@ -32,9 +31,12 @@ func (q *collectionQuerier) ExecuteQuery(
 		return nil, err
 	}
 
-	names, err := q.client.
+	queryCtx, cancel := q.connection.config.GetContext(ctx)
+	defer cancel()
+
+	names, err := q.connection.client.
 		Database(q.database.Name).
-		ListCollectionNames(ctx, filters, opts)
+		ListCollectionNames(queryCtx, filters, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +47,12 @@ func (q *collectionQuerier) ExecuteQuery(
 		defer close(channel)
 
 		for _, name := range names {
-			channel <- clerk.NewCollection(q.database, name)
+			select {
+			case <-queryCtx.Done():
+				return
+			default:
+				channel <- clerk.NewCollection(q.database, name)
+			}
 		}
 	}()
 

@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -11,28 +10,35 @@ import (
 
 type Connection struct {
 	ctx    context.Context
+	config Config
 	client *mongo.Client
 }
 
 func NewConnection(
 	ctx context.Context,
-	uri string,
+	config Config,
 ) (*Connection, error) {
-	var err error
+	opts := options.Client().
+		SetConnectTimeout(config.Timeout).
+		SetServerSelectionTimeout(config.Timeout).
+		SetSocketTimeout(config.Timeout).
+		SetTimeout(config.Timeout).
+		ApplyURI(config.Uri)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 5*time.Second)
-	defer timeoutCancel()
-	if err = client.Ping(timeoutCtx, readpref.Primary()); err != nil {
+	pingCtx, pingCancel := config.GetContext(ctx)
+	defer pingCancel()
+	if err = client.Ping(pingCtx, readpref.Primary()); err != nil {
 		return nil, err
 	}
 
 	return &Connection{
 		ctx:    ctx,
+		config: config,
 		client: client,
 	}, nil
 }
