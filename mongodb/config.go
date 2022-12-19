@@ -17,8 +17,6 @@ func DefaultConfig(uri string) Config {
 	}
 }
 
-// ---
-
 func (c Config) GetContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	if c.Timeout == 0 {
 		return context.WithCancel(ctx)
