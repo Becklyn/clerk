@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Becklyn/clerk/v2"
-	"github.com/Becklyn/clerk/v2/mongodb"
+	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v3/mongodb"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )

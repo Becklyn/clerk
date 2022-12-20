@@ -1,6 +1,6 @@
 package mongodb
 
-import "github.com/Becklyn/clerk/v2"
+import "github.com/Becklyn/clerk/v3"
 
 type CollectionOperator struct {
 	collectionQuerier

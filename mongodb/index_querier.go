@@ -3,7 +3,7 @@ package mongodb
 import (
 	"context"
 
-	"github.com/Becklyn/clerk/v2"
+	"github.com/Becklyn/clerk/v3"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -24,11 +24,14 @@ func (q *indexQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Index],
 ) (<-chan *clerk.Index, error) {
+	queryCtx, cancel := q.connection.config.GetContext(ctx)
+	defer cancel()
+
 	cursor, err := q.connection.client.
 		Database(q.collection.Database.Name).
 		Collection(q.collection.Name).
 		Indexes().
-		List(ctx)
+		List(queryCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +39,10 @@ func (q *indexQuerier) ExecuteQuery(
 	channel := make(chan *clerk.Index)
 
 	go func() {
-		defer cursor.Close(ctx)
+		defer cursor.Close(queryCtx)
 		defer close(channel)
 
-		for cursor.Next(ctx) {
+		for cursor.Next(queryCtx) {
 			model := primitive.D{}
 			if err := cursor.Decode(&model); err != nil {
 				return

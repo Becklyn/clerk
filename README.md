@@ -4,26 +4,26 @@
 
 ## Installation
 
-Adding *clerk* to your Go module is as easy as calling this command in your project
+Adding _clerk_ to your Go module is as easy as calling this command in your project
 
 ```shell
-go get github.com/Becklyn/clerk/v2
+go get github.com/Becklyn/clerk/v3
 ```
 
 ## Supported databases
 
-*clerk* has builtin support for the following database engines:
+_clerk_ has builtin support for the following database engines:
 
 - [MongoDB](https://www.mongodb.com/) - MongoDB is a document-oriented database
 
 Support for any other engines can be added by implementing their supported operations.  
-Have a look at the *MongoDB* implementation in the `/mongodb` directory as a starting point.
+Have a look at the _MongoDB_ implementation in the `/mongodb` directory as a starting point.
 
 ## Usage
 
 Being a minimalistic library, _clerk_ only provides the basics. The rest is up to your specific need.  
-Each operation in *clerk* consists of a generic operation and uses an *operator* that is specific to the database engine.  
-The examples given below all use the *MongoDB* operators.
+Each operation in _clerk_ consists of a generic operation and uses an _operator_ that is specific to the database engine.  
+The examples given below all use the _MongoDB_ operators.
 
 ### Creating a connection
 
@@ -65,7 +65,7 @@ tOperator := mongodb.NewOperator[T](connection, collection)
 ```
 
 The generic parameter T defines the data type which the operator can interact with.
-An operator has to be defined for each data type in use with *clerk*.
+An operator has to be defined for each data type in use with _clerk_.
 
 ### Persisting new data in a collection
 

@@ -1,3 +1,7 @@
+# v3.0.1
+
+- (bug) Remove module v2 import paths
+
 # v3.0.0
 
 - (bc) Add config struct and default timeouts

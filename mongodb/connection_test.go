@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Becklyn/clerk/v2/mongodb"
+	"github.com/Becklyn/clerk/v3/mongodb"
 	"github.com/stretchr/testify/assert"
 )
 

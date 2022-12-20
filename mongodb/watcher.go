@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/Becklyn/clerk/v2"
+	"github.com/Becklyn/clerk/v3"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
