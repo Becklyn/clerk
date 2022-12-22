@@ -64,6 +64,16 @@ func resolveFilter(filter clerk.Filter) (bson.E, error) {
 			Key:   filter.Key(),
 			Value: filter.Value(),
 		}, nil
+	case *clerk.NotEquals:
+		return bson.E{
+			Key: filter.Key(),
+			Value: bson.D{
+				{
+					Key:   "$ne",
+					Value: filter.Value(),
+				},
+			},
+		}, nil
 	case *clerk.GreaterThan:
 		return bson.E{
 			Key: filter.Key(),
@@ -121,6 +131,26 @@ func resolveFilter(filter clerk.Filter) (bson.E, error) {
 			Value: bson.D{
 				{
 					Key:   "$regex",
+					Value: filter.Value(),
+				},
+			},
+		}, nil
+	case *clerk.InArray:
+		return bson.E{
+			Key: filter.Key(),
+			Value: bson.D{
+				{
+					Key:   "$in",
+					Value: filter.Value(),
+				},
+			},
+		}, nil
+	case *clerk.NotInArray:
+		return bson.E{
+			Key: filter.Key(),
+			Value: bson.D{
+				{
+					Key:   "$nin",
 					Value: filter.Value(),
 				},
 			},
