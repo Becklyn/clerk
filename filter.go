@@ -91,6 +91,90 @@ func (l *Equals) Value() any {
 	return l.value
 }
 
+type InArray struct {
+	key   string
+	value any
+}
+
+func NewInArray(key string, value any) *InArray {
+	return &InArray{
+		key:   key,
+		value: value,
+	}
+}
+
+func (l *InArray) Left() Filter {
+	return nil
+}
+
+func (l *InArray) Right() Filter {
+	return nil
+}
+
+func (l *InArray) Key() string {
+	return l.key
+}
+
+func (l *InArray) Value() any {
+	return l.value
+}
+
+type NotInArray struct {
+	key   string
+	value any
+}
+
+func NewNotInArray(key string, value any) *NotInArray {
+	return &NotInArray{
+		key:   key,
+		value: value,
+	}
+}
+
+func (l *NotInArray) Left() Filter {
+	return nil
+}
+
+func (l *NotInArray) Right() Filter {
+	return nil
+}
+
+func (l *NotInArray) Key() string {
+	return l.key
+}
+
+func (l *NotInArray) Value() any {
+	return l.value
+}
+
+type NotEquals struct {
+	key   string
+	value any
+}
+
+func NewNotEquals(key string, value any) *NotEquals {
+	return &NotEquals{
+		key:   key,
+		value: value,
+	}
+}
+
+func (l *NotEquals) Left() Filter {
+	return nil
+}
+
+func (l *NotEquals) Right() Filter {
+	return nil
+}
+
+func (l *NotEquals) Key() string {
+	return l.key
+}
+
+func (l *NotEquals) Value() any {
+	return l.value
+}
+
 type GreaterThan struct {
 	key   string
 	value any

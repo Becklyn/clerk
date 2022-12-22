@@ -1,3 +1,9 @@
+# v3.1.0
+
+- (feature) Add NotEquals filter
+- (feature) Add InArray filter
+- (feature) Add NotInArray filter
+
 # v3.0.1
 
 - (bug) Remove module v2 import paths
