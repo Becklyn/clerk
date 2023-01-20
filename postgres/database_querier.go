@@ -26,14 +26,14 @@ func (q *databaseQuerier) ExecuteQuery(
 	}
 
 	stat, vals, err := statementBuilder().
-		Select("datname").
+		Select("name").
 		From("pg_database").
 		Where(condition).
 		ToSql()
 	if err != nil {
 		return nil, err
 	}
-	strings.ReplaceAll(stat, "name", "datname")
+	stat = strings.ReplaceAll(stat, "name", "datname")
 
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
 	defer cancel()
