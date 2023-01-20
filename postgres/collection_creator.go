@@ -8,16 +8,12 @@ import (
 )
 
 type collectionCreator struct {
-	conn      *Connection
-	database  *clerk.Database
-	dbCreator *databaseCreator
+	collectionBase
 }
 
 func newCollectionCreator(conn *Connection, database *clerk.Database) *collectionCreator {
 	return &collectionCreator{
-		conn:      conn,
-		database:  database,
-		dbCreator: newDatabaseCreator(conn),
+		*newCollectionBase(conn, database),
 	}
 }
 
@@ -35,7 +31,7 @@ func (c *collectionCreator) ExecuteCreate(
 	}
 
 	for _, data := range create.Data {
-		stat := fmt.Sprintf("create table %s (id uuid constraint %s_pk primary key, data jsonb default '{}')", data.Name, data.Name)
+		stat := fmt.Sprintf("CREATE TABLE %s (data JSONB DEFAULT '{}' NOT NULL); CREATE UNIQUE INDEX %s_index on %s ((data->>'_id'));", data.Name, data.Name, data.Name)
 
 		_, err := db.Client().Exec(createCtx, stat)
 		if err != nil {
@@ -43,19 +39,4 @@ func (c *collectionCreator) ExecuteCreate(
 		}
 	}
 	return nil
-}
-
-func (c *collectionCreator) tryUseDB(ctx context.Context) (*DatabaseConnection, func(), error) {
-	db, release, err := c.conn.UseDatabase(c.database.Name)
-	if err != nil {
-		if errCreate := c.dbCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
-			Data: []*clerk.Database{c.database},
-		}); errCreate != nil {
-			return nil, nil, err
-		}
-
-		return c.conn.UseDatabase(c.database.Name)
-	}
-
-	return db, release, err
 }
