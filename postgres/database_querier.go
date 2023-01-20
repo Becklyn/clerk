@@ -51,8 +51,7 @@ func (q *databaseQuerier) ExecuteQuery(
 
 		for rows.Next() {
 			var name string
-			err := rows.Scan(&name)
-			if err != nil {
+			if err := rows.Scan(&name); err != nil {
 				return
 			}
 
