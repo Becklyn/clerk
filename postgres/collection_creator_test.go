@@ -21,6 +21,7 @@ func Test_CollectionCreator_CreatesNonExisitingCollection(t *testing.T) {
 		With(collection).
 		Commit(context.Background())
 	assert.NoError(t, err)
+	assert.Error(t, err)
 }
 
 func Test_CollectionCreator_DoesNotCreateExistingCollection(t *testing.T) {
@@ -39,5 +40,5 @@ func Test_CollectionCreator_DoesNotCreateExistingCollection(t *testing.T) {
 	err = clerk.NewCreate[*clerk.Collection](collectionOperator).
 		With(collection).
 		Commit(context.Background())
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }

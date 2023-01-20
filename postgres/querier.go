@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+
 	"github.com/Becklyn/clerk/v3"
 	"github.com/jackc/pgx/v5"
 	"github.com/xdg-go/jibby"
@@ -59,13 +60,13 @@ func (q *querier[T]) ExecuteQuery(
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := q.conn.UseDatabase(q.collection.Database.Name)
+	dbConn, release, err := getConn(queryCtx, q.conn, q.collection.Database)
 	defer release()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := dbConn.client.Query(queryCtx, stat, vals...)
+	rows, err := dbConn.Query(queryCtx, stat, vals...)
 	if err != nil {
 		return nil, err
 	}

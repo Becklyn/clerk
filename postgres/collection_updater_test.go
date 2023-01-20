@@ -19,7 +19,7 @@ func Test_CollectionUpdater_UpdateCollection(t *testing.T) {
 
 	err := clerk.NewUpdate[*clerk.Collection](collectionOperator).
 		With(collection).
-		Where(clerk.NewEquals("name", "test_collection")).
+		Where(clerk.NewEquals("name", "test_collection2")).
 		Commit(context.Background())
 	assert.NoError(t, err)
 }

@@ -24,16 +24,16 @@ func (c *collectionCreator) ExecuteCreate(
 	createCtx, cancel := c.conn.config.GetContext(ctx)
 	defer cancel()
 
-	db, release, err := c.tryUseDB(ctx)
+	dbConn, release, err := getConn(createCtx, c.conn, c.database)
 	defer release()
 	if err != nil {
 		return err
 	}
 
 	for _, data := range create.Data {
-		stat := fmt.Sprintf("CREATE TABLE %s (data JSONB DEFAULT '{}' NOT NULL); CREATE UNIQUE INDEX %s_index on %s ((data->>'_id'));", data.Name, data.Name, data.Name)
+		stat := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (data JSONB DEFAULT '{}' NOT NULL); CREATE UNIQUE INDEX IF NOT EXISTS %s_pk on %s ((data->>'_id'));", data.Name, data.Name, data.Name)
 
-		_, err := db.Client().Exec(createCtx, stat)
+		_, err := dbConn.Exec(createCtx, stat)
 		if err != nil {
 			return err
 		}

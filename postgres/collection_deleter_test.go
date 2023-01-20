@@ -16,7 +16,7 @@ func Test_CollectionDeleter_DeleterCollection(t *testing.T) {
 	collectionOperator := postgres.NewCollectionOperator(conn, database)
 
 	number, err := clerk.NewDelete[*clerk.Collection](collectionOperator).
-		Where(clerk.NewEquals("name", "new_test_collection")).
+		Where(clerk.NewEquals("name", "test_collection")).
 		Commit(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, 1, number)

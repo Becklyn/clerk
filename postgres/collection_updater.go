@@ -35,18 +35,47 @@ func (u *collectionUpdater) ExecuteUpdate(
 	updateCtx, cancel := u.conn.config.GetContext(ctx)
 	defer cancel()
 
-	db, release, err := u.tryUseDB(updateCtx)
+	updateCtx, _ = useTx(updateCtx)
+
+	dbConn, release, err := getConn(updateCtx, u.conn, u.database)
 	defer release()
 	if err != nil {
 		return err
 	}
 
-	for _, name := range names {
-		stmt := fmt.Sprintf("ALTER TABLE IF EXISTS %s RENAME TO %s", name, update.Data.Name)
-		if _, err := db.client.Exec(updateCtx, stmt); err != nil {
-			return err
-		}
-	}
+	return newTransactor().ExecuteTransaction(updateCtx, func(ctx context.Context) error {
+		for _, name := range names {
+			rows, err := dbConn.Query(ctx, "SELECT indexname FROM pg_indexes WHERE tablename = $1", name)
+			if err != nil {
+				return err
+			}
 
-	return nil
+			var indexNames []string
+
+			for rows.Next() {
+				var indexName string
+				if err := rows.Scan(&indexName); err != nil {
+					return err
+				}
+
+				indexNames = append(indexNames, indexName)
+			}
+			rows.Close()
+
+			for _, indexName := range indexNames {
+				suffix := strings.TrimPrefix(indexName, name)
+				indexStmt := fmt.Sprintf("ALTER INDEX IF EXISTS %s%s RENAME TO %s%s", name, suffix, update.Data.Name, suffix)
+				if _, err := dbConn.Exec(ctx, indexStmt); err != nil {
+					return err
+				}
+			}
+
+			stmt := fmt.Sprintf("ALTER TABLE IF EXISTS %s RENAME TO %s;", name, update.Data.Name)
+			if _, err := dbConn.Exec(ctx, stmt); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

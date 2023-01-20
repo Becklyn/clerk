@@ -18,7 +18,7 @@ func newCollectionDeleter(conn *Connection, database *clerk.Database) *collectio
 	}
 }
 
-func (u *collectionDeleter) ExecuteDelete(
+func (d *collectionDeleter) ExecuteDelete(
 	ctx context.Context,
 	delete *clerk.Delete[*clerk.Collection],
 ) (int, error) {
@@ -32,10 +32,10 @@ func (u *collectionDeleter) ExecuteDelete(
 		}
 	}
 
-	deleteCtx, cancel := u.conn.config.GetContext(ctx)
+	deleteCtx, cancel := d.conn.config.GetContext(ctx)
 	defer cancel()
 
-	db, release, err := u.tryUseDB(deleteCtx)
+	dbConn, release, err := getConn(deleteCtx, d.conn, d.database)
 	defer release()
 	if err != nil {
 		return 0, err
@@ -43,7 +43,7 @@ func (u *collectionDeleter) ExecuteDelete(
 
 	for _, name := range names {
 		stmt := fmt.Sprintf("DROP TABLE IF EXISTS %s", name)
-		if _, err := db.client.Exec(deleteCtx, stmt); err != nil {
+		if _, err := dbConn.Exec(deleteCtx, stmt); err != nil {
 			return 0, err
 		}
 	}

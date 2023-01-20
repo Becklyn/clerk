@@ -7,6 +7,7 @@ import (
 )
 
 type DatabaseConnection struct {
+	name   string
 	conn   *Connection
 	client *pgx.Conn
 }
@@ -21,6 +22,7 @@ func NewDatabaseConnection(
 	}
 
 	return &DatabaseConnection{
+		name:   database,
 		conn:   conn,
 		client: client,
 	}, nil
