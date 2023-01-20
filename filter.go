@@ -1,10 +1,17 @@
 package clerk
 
+import "errors"
+
+var (
+	ErrorInvalidFilter = errors.New("invalid filter")
+)
+
 type Filter interface {
 	Left() Filter
 	Right() Filter
 	Key() string
 	Value() any
+	Values() []any
 }
 
 type And struct {
@@ -32,6 +39,10 @@ func (l *And) Key() string {
 }
 
 func (l *And) Value() any {
+	return nil
+}
+
+func (l *And) Values() []any {
 	return nil
 }
 
@@ -63,6 +74,10 @@ func (l *Or) Value() any {
 	return nil
 }
 
+func (l *Or) Values() []any {
+	return nil
+}
+
 type Equals struct {
 	key   string
 	value any
@@ -91,15 +106,83 @@ func (l *Equals) Value() any {
 	return l.value
 }
 
-type InArray struct {
-	key   string
-	value any
+func (l *Equals) Values() []any {
+	return nil
 }
 
-func NewInArray(key string, value any) *InArray {
+type In struct {
+	key    string
+	values []any
+}
+
+func NewIn(key string, values ...any) *In {
+	return &In{
+		key:    key,
+		values: values,
+	}
+}
+
+func (i *In) Left() Filter {
+	return nil
+}
+
+func (i *In) Right() Filter {
+	return nil
+}
+
+func (i *In) Key() string {
+	return i.key
+}
+
+func (i *In) Value() any {
+	return nil
+}
+
+func (i *In) Values() []any {
+	return i.values
+}
+
+type NotIn struct {
+	key    string
+	values []any
+}
+
+func NewNotIn(key string, values ...any) *NotIn {
+	return &NotIn{
+		key:    key,
+		values: values,
+	}
+}
+
+func (i *NotIn) Left() Filter {
+	return nil
+}
+
+func (i *NotIn) Right() Filter {
+	return nil
+}
+
+func (i *NotIn) Key() string {
+	return i.key
+}
+
+func (i *NotIn) Value() any {
+	return nil
+}
+
+func (i *NotIn) Values() []any {
+	return i.values
+}
+
+type InArray struct {
+	key    string
+	values []any
+}
+
+func NewInArray(key string, values ...any) *InArray {
 	return &InArray{
-		key:   key,
-		value: value,
+		key:    key,
+		values: values,
 	}
 }
 
@@ -116,18 +199,22 @@ func (l *InArray) Key() string {
 }
 
 func (l *InArray) Value() any {
-	return l.value
+	return nil
+}
+
+func (l *InArray) Values() []any {
+	return l.values
 }
 
 type NotInArray struct {
-	key   string
-	value any
+	key    string
+	values []any
 }
 
-func NewNotInArray(key string, value any) *NotInArray {
+func NewNotInArray(key string, values ...any) *NotInArray {
 	return &NotInArray{
-		key:   key,
-		value: value,
+		key:    key,
+		values: values,
 	}
 }
 
@@ -144,7 +231,11 @@ func (l *NotInArray) Key() string {
 }
 
 func (l *NotInArray) Value() any {
-	return l.value
+	return nil
+}
+
+func (l *NotInArray) Values() []any {
+	return l.values
 }
 
 type NotEquals struct {
@@ -175,6 +266,10 @@ func (l *NotEquals) Value() any {
 	return l.value
 }
 
+func (l *NotEquals) Values() []any {
+	return nil
+}
+
 type GreaterThan struct {
 	key   string
 	value any
@@ -203,32 +298,40 @@ func (l *GreaterThan) Value() any {
 	return l.value
 }
 
-type GreaterThanOrEqual struct {
+func (l *GreaterThan) Values() []any {
+	return nil
+}
+
+type GreaterThanOrEquals struct {
 	key   string
 	value any
 }
 
-func NewGreaterThanOrEqual(key string, value any) *GreaterThanOrEqual {
-	return &GreaterThanOrEqual{
+func NewGreaterThanOrEquals(key string, value any) *GreaterThanOrEquals {
+	return &GreaterThanOrEquals{
 		key:   key,
 		value: value,
 	}
 }
 
-func (l *GreaterThanOrEqual) Left() Filter {
+func (l *GreaterThanOrEquals) Left() Filter {
 	return nil
 }
 
-func (l *GreaterThanOrEqual) Right() Filter {
+func (l *GreaterThanOrEquals) Right() Filter {
 	return nil
 }
 
-func (l *GreaterThanOrEqual) Key() string {
+func (l *GreaterThanOrEquals) Key() string {
 	return l.key
 }
 
-func (l *GreaterThanOrEqual) Value() any {
+func (l *GreaterThanOrEquals) Value() any {
 	return l.value
+}
+
+func (l *GreaterThanOrEquals) Values() []any {
+	return nil
 }
 
 type LessThan struct {
@@ -259,32 +362,40 @@ func (l *LessThan) Value() any {
 	return l.value
 }
 
-type LessThanOrEqual struct {
+func (l *LessThan) Values() []any {
+	return nil
+}
+
+type LessThanOrEquals struct {
 	key   string
 	value any
 }
 
-func NewLessThanOrEqual(key string, value any) *LessThanOrEqual {
-	return &LessThanOrEqual{
+func NewLessThanOrEquals(key string, value any) *LessThanOrEquals {
+	return &LessThanOrEquals{
 		key:   key,
 		value: value,
 	}
 }
 
-func (l *LessThanOrEqual) Left() Filter {
+func (l *LessThanOrEquals) Left() Filter {
 	return nil
 }
 
-func (l *LessThanOrEqual) Right() Filter {
+func (l *LessThanOrEquals) Right() Filter {
 	return nil
 }
 
-func (l *LessThanOrEqual) Key() string {
+func (l *LessThanOrEquals) Key() string {
 	return l.key
 }
 
-func (l *LessThanOrEqual) Value() any {
+func (l *LessThanOrEquals) Value() any {
 	return l.value
+}
+
+func (l *LessThanOrEquals) Values() []any {
+	return nil
 }
 
 type Exists struct {
@@ -292,8 +403,9 @@ type Exists struct {
 	value any
 }
 
-func NewExists(value any) *Exists {
+func NewExists(key string, value any) *Exists {
 	return &Exists{
+		key:   key,
 		value: value,
 	}
 }
@@ -312,6 +424,10 @@ func (l *Exists) Key() string {
 
 func (l *Exists) Value() any {
 	return l.value
+}
+
+func (l *Exists) Values() []any {
+	return nil
 }
 
 type Regex struct {
@@ -340,4 +456,8 @@ func (l *Regex) Key() string {
 
 func (l *Regex) Value() any {
 	return l.value
+}
+
+func (l *Regex) Values() []any {
+	return nil
 }

@@ -23,7 +23,7 @@ func NewConnection(
 		SetServerSelectionTimeout(config.Timeout).
 		SetSocketTimeout(config.Timeout).
 		SetTimeout(config.Timeout).
-		ApplyURI(config.Uri)
+		ApplyURI(string(config.Host))
 
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {

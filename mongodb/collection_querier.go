@@ -26,7 +26,7 @@ func (q *collectionQuerier) ExecuteQuery(
 ) (<-chan *clerk.Collection, error) {
 	opts := options.ListCollections()
 
-	filters, err := resolveFilters(query.Filters)
+	filters, err := resolveFilters(query.Filters...)
 	if err != nil {
 		return nil, err
 	}

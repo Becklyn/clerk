@@ -24,7 +24,7 @@ func (u *updater[T]) ExecuteUpdate(ctx context.Context, update *clerk.Update[T])
 	opts := options.Replace().
 		SetUpsert(update.ShouldUpsert)
 
-	filters, err := resolveFilters(update.Filters)
+	filters, err := resolveFilters(update.Filters...)
 	if err != nil {
 		return err
 	}
