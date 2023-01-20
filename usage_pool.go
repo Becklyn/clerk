@@ -1,8 +1,13 @@
 package clerk
 
 import (
+	"errors"
 	"sync"
 	"time"
+)
+
+var (
+	ErrNegativeReferenceCount = errors.New("negative reference count")
 )
 
 type UsagePool[T any] struct {
@@ -40,6 +45,9 @@ func (r *UsagePool[T]) Release() {
 	r.Lock()
 	defer r.Unlock()
 
+	if r.counter == 0 {
+		panic(ErrNegativeReferenceCount)
+	}
 	r.counter--
 }
 
