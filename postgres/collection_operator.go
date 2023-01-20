@@ -6,6 +6,7 @@ type CollectionOperator struct {
 	collectionCreator
 	collectionQuerier
 	collectionUpdater
+	collectionDeleter
 }
 
 func NewCollectionOperator(connection *Connection, database *clerk.Database) *CollectionOperator {
@@ -13,5 +14,6 @@ func NewCollectionOperator(connection *Connection, database *clerk.Database) *Co
 		collectionCreator: *newCollectionCreator(connection, database),
 		collectionQuerier: *newCollectionQuerier(connection, database),
 		collectionUpdater: *newCollectionUpdater(connection, database),
+		collectionDeleter: *newCollectionDeleter(connection, database),
 	}
 }
