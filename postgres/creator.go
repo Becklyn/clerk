@@ -34,7 +34,7 @@ func (c *creator[T]) ExecuteCreate(
 	createCtx, cancel := c.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := getConn(createCtx, c.conn, c.database)
+	dbConn, release, err := c.conn.useDatabase(createCtx, c.database.Name)
 	defer release()
 	if err != nil {
 		return err

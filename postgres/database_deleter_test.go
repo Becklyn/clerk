@@ -2,14 +2,15 @@ package postgres_test
 
 import (
 	"context"
+	"testing"
+
 	"github.com/Becklyn/clerk/v3"
 	"github.com/Becklyn/clerk/v3/postgres"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_DatabaseDeleter_DeletesExistingDatabase(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	databaseOperator := postgres.NewDatabaseOperator(conn)
 
@@ -28,7 +29,7 @@ func Test_DatabaseDeleter_DeletesExistingDatabase(t *testing.T) {
 }
 
 func TestDatabaseDeleter_DoesNotDeleteNonExistingDatabase(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	databaseOperator := postgres.NewDatabaseOperator(conn)
 

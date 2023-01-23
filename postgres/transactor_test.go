@@ -11,7 +11,7 @@ import (
 )
 
 func TestTransactor_Rollback(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 	databaseOperator := postgres.NewDatabaseOperator(conn)
 	type Message struct {
 		Id   string `bson:"_id"`
@@ -50,7 +50,7 @@ func TestTransactor_Rollback(t *testing.T) {
 }
 
 func TestTransactor_Commit(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 	databaseOperator := postgres.NewDatabaseOperator(conn)
 	type Message struct {
 		Id   string `bson:"_id"`

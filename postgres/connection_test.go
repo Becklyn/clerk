@@ -1,4 +1,4 @@
-package postgres_test
+package postgres
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Becklyn/clerk/v3/postgres"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,25 +17,36 @@ func isRunningInContainer() bool {
 	return false
 }
 
-func NewIntegrationConnection(t *testing.T) *postgres.Connection {
+func NewIntegrationConnection(t *testing.T) *Connection {
 	hostname := "localhost"
 	if isRunningInContainer() {
 		hostname = "host.docker.internal"
 	}
 
-	host := postgres.Host(fmt.Sprintf("postgres://postgres:change-me@%s:5432", hostname))
+	host := Host(fmt.Sprintf("postgres://postgres:change-me@%s:5432", hostname))
 
-	connection, err := postgres.NewConnection(
+	connection, err := NewConnection(
 		context.Background(),
-		postgres.DefaultConfig(host),
+		DefaultConfig(host),
 	)
 	assert.NoError(t, err)
 	return connection
 }
 
 func TestSQl(t *testing.T) {
+
 	// CREATE INDEX ON publishers((info->>'name'));q
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	stmt, vals, err := statementBuilder().
+		Insert("test_database").
+		Columns("data").
+		Values(map[string]any{"key": "value"}).
+		Suffix("ON CONFLICT ((data->>'_id')) DO UPDATE SET data = ?", map[string]any{"key": "value"}).ToSql()
+
+	fmt.Println(stmt, vals)
+	assert.False(t, true)
+
 	q, p, err := psql.
 		Select("*").
 		From("test").
@@ -62,12 +72,12 @@ func TestSQl(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	jsondb, release, err := conn.UseDatabase("jsondb")
+	dbConn, release, err := conn.useDatabase(context.Background(), "jsondb")
 	defer release()
 	assert.NoError(t, err)
 
 	// "SELECT FROM pg_database WHERE datname = 'test'"
-	rows, err := jsondb.Client().Query(
+	rows, err := dbConn.Query(
 		context.Background(),
 		q,
 		p...,
@@ -98,7 +108,7 @@ func TestSandbox(t *testing.T) {
 	})
 
 	// "SELECT FROM pg_database WHERE datname = 'test'"
-	rows, err := conn.Client().Query(
+	rows, err := conn.client.Query(
 		context.Background(),
 		"SELECT datname FROM pg_database WHERE datname = 'test'",
 	)
@@ -120,12 +130,12 @@ func TestSandbox(t *testing.T) {
 	// assert.NoError(t, err)
 
 	// Create a new database conn
-	testDb, done, err := conn.UseDatabase("test")
+	dbConn, done, err := conn.useDatabase(context.Background(), "test")
 	defer done()
 	assert.NoError(t, err)
 
 	// Create a new table
-	_, err = testDb.Client().Exec(
+	_, err = dbConn.Exec(
 		context.Background(),
 		"CREATE TABLE IF NOT EXISTS test (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL)",
 	)

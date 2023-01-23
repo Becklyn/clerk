@@ -2,14 +2,15 @@ package postgres_test
 
 import (
 	"context"
+	"testing"
+
 	"github.com/Becklyn/clerk/v3"
 	"github.com/Becklyn/clerk/v3/postgres"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_DatabaseCreator_CreatesNonExisitingDatabase(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	databaseOperator := postgres.NewDatabaseOperator(conn)
 
@@ -29,7 +30,7 @@ func Test_DatabaseCreator_CreatesNonExisitingDatabase(t *testing.T) {
 }
 
 func Test_DatabaseCreator_DoesNotCreateExistingDatabase(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	databaseOperator := postgres.NewDatabaseOperator(conn)
 

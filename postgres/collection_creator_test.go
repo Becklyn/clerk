@@ -10,7 +10,7 @@ import (
 )
 
 func Test_CollectionCreator_CreatesNonExisitingCollection(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	database := clerk.NewDatabase("test_database")
 	collectionOperator := postgres.NewCollectionOperator(conn, database)
@@ -25,7 +25,7 @@ func Test_CollectionCreator_CreatesNonExisitingCollection(t *testing.T) {
 }
 
 func Test_CollectionCreator_DoesNotCreateExistingCollection(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	database := clerk.NewDatabase("test_database")
 	collectionOperator := postgres.NewCollectionOperator(conn, database)

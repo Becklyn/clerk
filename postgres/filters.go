@@ -2,10 +2,11 @@ package postgres
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/Becklyn/clerk/v3"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/samber/lo"
-	"strings"
 )
 
 func jsonKeyToSelector(column string, key string, value any) string {
@@ -31,7 +32,7 @@ func jsonKeyToSelector(column string, key string, value any) string {
 }
 
 func typeCastSelector(selector string, value any) string {
-	switch value.(type) {
+	switch v := value.(type) {
 	case int:
 		return fmt.Sprintf("(%s)::int", selector)
 	case float64:
@@ -39,13 +40,13 @@ func typeCastSelector(selector string, value any) string {
 	case bool:
 		return fmt.Sprintf("(%s)::bool", selector)
 	case []int:
-		return typeCastSelector(selector, value.([]int)[0])
+		return typeCastSelector(selector, v[0])
 	case []float64:
-		return typeCastSelector(selector, value.([]float64)[0])
+		return typeCastSelector(selector, v[0])
 	case []bool:
-		return typeCastSelector(selector, value.([]bool)[0])
+		return typeCastSelector(selector, v[0])
 	case []any:
-		return typeCastSelector(selector, value.([]any)[0])
+		return typeCastSelector(selector, v[0])
 	default:
 		return selector
 	}

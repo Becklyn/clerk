@@ -8,9 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type transactor struct {
-	dbCreator *databaseCreator
-}
+type transactor struct{}
 
 func newTransactor() *transactor {
 	return &transactor{}
@@ -29,8 +27,7 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 
 type transactionCtx struct {
 	sync.RWMutex
-	conn *Connection
-	txs  map[string]pgx.Tx
+	txs map[string]pgx.Tx
 }
 
 func (t *transactionCtx) Rollback(ctx context.Context) {
@@ -54,20 +51,20 @@ func (t *transactionCtx) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (t *transactionCtx) useDb(ctx context.Context, db *DatabaseConnection) (*pgx.Conn, error) {
+func (t *transactionCtx) useDb(ctx context.Context, dbName string, db *pgx.Conn) (*pgx.Conn, error) {
 	t.Lock()
 	defer t.Unlock()
 
-	if _, ok := t.txs[db.name]; !ok {
-		tx, err := db.client.Begin(ctx)
+	if _, ok := t.txs[dbName]; !ok {
+		tx, err := db.Begin(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		t.txs[db.name] = tx
+		t.txs[dbName] = tx
 	}
 
-	return t.txs[db.name].Conn(), nil
+	return t.txs[dbName].Conn(), nil
 }
 
 type txCtxData struct{}
@@ -81,33 +78,4 @@ func useTx(ctx context.Context) (context.Context, *transactionCtx) {
 		txs: map[string]pgx.Tx{},
 	}
 	return context.WithValue(ctx, txCtxData{}, tx), tx
-}
-
-func getConn(ctx context.Context, conn *Connection, database *clerk.Database) (*pgx.Conn, func(), error) {
-	db, release, err := tryUseDb(ctx, conn, database)
-	if err != nil {
-		return nil, release, err
-	}
-
-	if tx, ok := ctx.Value(txCtxData{}).(*transactionCtx); ok {
-		pgConn, err := tx.useDb(ctx, db)
-		return pgConn, release, err
-	}
-
-	return db.client, release, nil
-}
-
-func tryUseDb(ctx context.Context, conn *Connection, database *clerk.Database) (*DatabaseConnection, func(), error) {
-	db, release, err := conn.UseDatabase(database.Name)
-	if err != nil {
-		if errCreate := newDatabaseCreator(conn).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
-			Data: []*clerk.Database{database},
-		}); errCreate != nil {
-			return nil, nil, err
-		}
-
-		return conn.UseDatabase(database.Name)
-	}
-
-	return db, release, err
 }

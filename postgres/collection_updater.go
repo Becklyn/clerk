@@ -37,7 +37,7 @@ func (u *collectionUpdater) ExecuteUpdate(
 
 	updateCtx, _ = useTx(updateCtx)
 
-	dbConn, release, err := getConn(updateCtx, u.conn, u.database)
+	dbConn, release, err := u.conn.useDatabase(updateCtx, u.database.Name)
 	defer release()
 	if err != nil {
 		return err

@@ -10,7 +10,7 @@ import (
 )
 
 func Test_CollectionDeleter_DeleterCollection(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	database := clerk.NewDatabase("test_database")
 	collectionOperator := postgres.NewCollectionOperator(conn, database)
@@ -23,7 +23,7 @@ func Test_CollectionDeleter_DeleterCollection(t *testing.T) {
 }
 
 func Test_CollectionDeleter_DeleterNonExistingCollection(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	database := clerk.NewDatabase("test_database")
 	collectionOperator := postgres.NewCollectionOperator(conn, database)

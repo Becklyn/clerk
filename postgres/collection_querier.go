@@ -53,7 +53,7 @@ func (q *collectionQuerier) ExecuteQuery(
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := getConn(queryCtx, q.conn, q.database)
+	dbConn, release, err := q.conn.useDatabase(queryCtx, q.database.Name)
 	defer release()
 	if err != nil {
 		return nil, err

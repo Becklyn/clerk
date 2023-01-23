@@ -10,7 +10,7 @@ import (
 )
 
 func Test_Creator_CreatesData(t *testing.T) {
-	conn := NewIntegrationConnection(t)
+	conn := postgres.NewIntegrationConnection(t)
 
 	type Message struct {
 		Id   string `bson:"_id"`
@@ -22,7 +22,7 @@ func Test_Creator_CreatesData(t *testing.T) {
 	collectionOperator := postgres.NewOperator[*Message](conn, collection)
 
 	message := Message{
-		Id:   "1",
+		Id:   "2",
 		Text: "Hello World",
 	}
 

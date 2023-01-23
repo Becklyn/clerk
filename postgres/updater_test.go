@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Deleter_DeletesAnEntity(t *testing.T) {
+func Test_Updater_UpdatesAnEntity(t *testing.T) {
 	connection := postgres.NewIntegrationConnection(t)
 
 	database := clerk.NewDatabase("test_database")
@@ -33,14 +33,26 @@ func Test_Deleter_DeletesAnEntity(t *testing.T) {
 		Commit(context.Background())
 	assert.NoError(t, err)
 
-	count, err := clerk.NewDelete[*Message](operator).
+	updateMessage := Message{
+		Id:   message.Id,
+		Text: "Foo Bar",
+	}
+
+	err = clerk.NewUpdate[*Message](operator).
 		Where(clerk.NewEquals("_id", message.Id)).
+		With(&updateMessage).
 		Commit(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count)
+
+	updatedMessage, err := clerk.NewQuery[*Message](operator).
+		Where(clerk.NewEquals("_id", updateMessage.Id)).
+		Single(context.Background())
+	assert.NoError(t, err)
+
+	assert.Equal(t, &updateMessage, updatedMessage)
 }
 
-func Test_Deleter_WithoutAnyFilters_DoesDeletesAllEntities(t *testing.T) {
+func Test_Updater_UpsertsAnEntity(t *testing.T) {
 	connection := postgres.NewIntegrationConnection(t)
 
 	database := clerk.NewDatabase("test_database")
@@ -51,26 +63,29 @@ func Test_Deleter_WithoutAnyFilters_DoesDeletesAllEntities(t *testing.T) {
 		Text string `bson:"text"`
 	}
 
-	message1 := Message{
+	message := Message{
 		Id:   uuid.NewV4().String(),
 		Text: "Hello World",
 	}
 
-	message2 := Message{
-		Id:   uuid.NewV4().String(),
+	operator := postgres.NewOperator[*Message](connection, collection)
+
+	upsertMessage := Message{
+		Id:   message.Id,
 		Text: "Foo Bar",
 	}
 
-	operator := postgres.NewOperator[*Message](connection, collection)
-
-	err := clerk.NewCreate[*Message](operator).
-		With(&message1).
-		With(&message2).
+	err := clerk.NewUpdate[*Message](operator).
+		Where(clerk.NewEquals("_id", message.Id)).
+		With(&upsertMessage).
+		Upsert().
 		Commit(context.Background())
 	assert.NoError(t, err)
 
-	count, err := clerk.NewDelete[*Message](operator).
-		Commit(context.Background())
+	upsertedMessage, err := clerk.NewQuery[*Message](operator).
+		Where(clerk.NewEquals("_id", upsertMessage.Id)).
+		Single(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 2, count)
+
+	assert.Equal(t, &upsertMessage, upsertedMessage)
 }
