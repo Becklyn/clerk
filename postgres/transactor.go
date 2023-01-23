@@ -6,6 +6,7 @@ import (
 
 	"github.com/Becklyn/clerk/v4"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type transactor struct{}
@@ -51,12 +52,12 @@ func (t *transactionCtx) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (t *transactionCtx) useDb(ctx context.Context, dbName string, db *pgx.Conn) (*pgx.Conn, error) {
+func (t *transactionCtx) useDb(ctx context.Context, dbName string, pool *pgxpool.Pool) (*pgx.Conn, error) {
 	t.Lock()
 	defer t.Unlock()
 
 	if _, ok := t.txs[dbName]; !ok {
-		tx, err := db.Begin(ctx)
+		tx, err := pool.Begin(ctx)
 		if err != nil {
 			return nil, err
 		}

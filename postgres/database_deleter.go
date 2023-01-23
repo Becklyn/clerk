@@ -36,7 +36,7 @@ func (d *databaseDeleter) ExecuteDelete(
 
 	for _, name := range names {
 		stat := "DROP DATABASE " + name
-		if _, err := d.conn.client.Exec(deleteCtx, stat); err != nil {
+		if _, err := d.conn.pool.Exec(deleteCtx, stat); err != nil {
 			return 0, err
 		}
 	}

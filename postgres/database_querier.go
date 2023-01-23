@@ -38,7 +38,7 @@ func (q *databaseQuerier) ExecuteQuery(
 
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
 
-	rows, err := q.conn.client.Query(queryCtx, stat, vals...)
+	rows, err := q.conn.pool.Query(queryCtx, stat, vals...)
 	if err != nil {
 		cancel()
 		return nil, err

@@ -25,7 +25,7 @@ func (c *databaseCreator) ExecuteCreate(
 
 	for _, data := range create.Data {
 		stat := "CREATE DATABASE " + data.Name
-		if _, err := c.conn.client.Exec(createCtx, stat); err != nil {
+		if _, err := c.conn.pool.Exec(createCtx, stat); err != nil {
 			return err
 		}
 	}

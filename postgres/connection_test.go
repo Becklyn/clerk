@@ -34,7 +34,5 @@ func NewIntegrationConnection(t *testing.T) *Connection {
 
 func TestCanConnectToIntegration(t *testing.T) {
 	connection := NewIntegrationConnection(t)
-	defer connection.Close(func(err error) {
-		assert.NoError(t, err)
-	})
+	defer connection.Close()
 }
