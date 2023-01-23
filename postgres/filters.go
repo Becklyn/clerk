@@ -35,11 +35,23 @@ func typeCastSelector(selector string, value any) string {
 	switch v := value.(type) {
 	case int:
 		return fmt.Sprintf("(%s)::int", selector)
+	case int32:
+		return fmt.Sprintf("(%s)::int", selector)
+	case int64:
+		return fmt.Sprintf("(%s)::bigint", selector)
+	case float32:
+		return fmt.Sprintf("(%s)::float", selector)
 	case float64:
 		return fmt.Sprintf("(%s)::float", selector)
 	case bool:
 		return fmt.Sprintf("(%s)::bool", selector)
 	case []int:
+		return typeCastSelector(selector, v[0])
+	case []int32:
+		return typeCastSelector(selector, v[0])
+	case []int64:
+		return typeCastSelector(selector, v[0])
+	case []float32:
 		return typeCastSelector(selector, v[0])
 	case []float64:
 		return typeCastSelector(selector, v[0])
