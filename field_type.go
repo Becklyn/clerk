@@ -5,7 +5,7 @@ type FieldType int
 const (
 	FieldTypeAscending FieldType = iota
 	FieldTypeDescending
-	FieldTypeString
+	FieldTypeText
 )
 
 func (t FieldType) String() string {
@@ -14,8 +14,8 @@ func (t FieldType) String() string {
 		return "ascending"
 	case FieldTypeDescending:
 		return "descending"
-	case FieldTypeString:
-		return "string"
+	case FieldTypeText:
+		return "text"
 	default:
 		return "unknown"
 	}

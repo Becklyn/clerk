@@ -22,7 +22,7 @@ func (d *deleter[T]) ExecuteDelete(
 	ctx context.Context,
 	delete *clerk.Delete[T],
 ) (int, error) {
-	filters, err := resolveFilters(delete.Filters)
+	filters, err := resolveFilters(delete.Filters...)
 	if err != nil {
 		return 0, err
 	}

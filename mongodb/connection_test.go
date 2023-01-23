@@ -18,15 +18,24 @@ func isRunningInContainer() bool {
 }
 
 func NewIntegrationConnection(t *testing.T) *mongodb.Connection {
-	host := "localhost"
+	hostname := "localhost"
 	if isRunningInContainer() {
-		host = "host.docker.internal"
+		hostname = "host.docker.internal"
 	}
+
+	host := mongodb.Host(fmt.Sprintf("mongodb://root:change-me@%s:27017", hostname))
 
 	connection, err := mongodb.NewConnection(
 		context.Background(),
-		mongodb.DefaultConfig(fmt.Sprintf("mongodb://%s:27017", host)),
+		mongodb.DefaultConfig(host),
 	)
 	assert.NoError(t, err)
 	return connection
+}
+
+func TestCanConnectToIntegration(t *testing.T) {
+	connection := NewIntegrationConnection(t)
+	defer connection.Close(func(err error) {
+		assert.NoError(t, err)
+	})
 }

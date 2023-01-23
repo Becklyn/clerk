@@ -50,7 +50,7 @@ func (q *querier[T]) ExecuteQuery(
 		opts.SetSort(sort)
 	}
 
-	filters, err := resolveFilters(query.Filters)
+	filters, err := resolveFilters(query.Filters...)
 	if err != nil {
 		return nil, err
 	}

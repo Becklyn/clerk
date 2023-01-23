@@ -2,9 +2,7 @@ package mongodb
 
 import (
 	"context"
-
 	"github.com/Becklyn/clerk/v3"
-
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -24,7 +22,7 @@ func (q *databaseQuerier) ExecuteQuery(
 ) (<-chan *clerk.Database, error) {
 	opts := options.ListDatabases()
 
-	filters, err := resolveFilters(query.Filters)
+	filters, err := resolveFilters(query.Filters...)
 	if err != nil {
 		return nil, err
 	}

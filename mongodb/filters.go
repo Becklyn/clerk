@@ -1,7 +1,6 @@
 package mongodb
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/Becklyn/clerk/v3"
@@ -9,11 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var (
-	ErrUnknownFilter = errors.New("unknown filter")
-)
-
-func resolveFilters(filters []clerk.Filter) (bson.D, error) {
+func resolveFilters(filters ...clerk.Filter) (bson.D, error) {
 	bsonFilters := bson.D{}
 	for _, filter := range filters {
 		parsedFilter, err := resolveFilter(filter)
@@ -85,7 +80,7 @@ func resolveFilter(filter clerk.Filter) (bson.E, error) {
 			},
 		}, nil
 
-	case *clerk.GreaterThanOrEqual:
+	case *clerk.GreaterThanOrEquals:
 		return bson.E{
 			Key: filter.Key(),
 			Value: bson.D{
@@ -105,7 +100,7 @@ func resolveFilter(filter clerk.Filter) (bson.E, error) {
 				},
 			},
 		}, nil
-	case *clerk.LessThanOrEqual:
+	case *clerk.LessThanOrEquals:
 		return bson.E{
 			Key: filter.Key(),
 			Value: bson.D{
@@ -135,13 +130,33 @@ func resolveFilter(filter clerk.Filter) (bson.E, error) {
 				},
 			},
 		}, nil
+	case *clerk.In:
+		return bson.E{
+			Key: filter.Key(),
+			Value: bson.D{
+				{
+					Key:   "$in",
+					Value: filter.Values(),
+				},
+			},
+		}, nil
 	case *clerk.InArray:
 		return bson.E{
 			Key: filter.Key(),
 			Value: bson.D{
 				{
 					Key:   "$in",
-					Value: filter.Value(),
+					Value: filter.Values(),
+				},
+			},
+		}, nil
+	case *clerk.NotIn:
+		return bson.E{
+			Key: filter.Key(),
+			Value: bson.D{
+				{
+					Key:   "$nin",
+					Value: filter.Values(),
 				},
 			},
 		}, nil
@@ -151,11 +166,11 @@ func resolveFilter(filter clerk.Filter) (bson.E, error) {
 			Value: bson.D{
 				{
 					Key:   "$nin",
-					Value: filter.Value(),
+					Value: filter.Values(),
 				},
 			},
 		}, nil
 	default:
-		return bson.E{}, fmt.Errorf("%w: %T", ErrUnknownFilter, filter)
+		return bson.E{}, fmt.Errorf("%w: %T", clerk.ErrorInvalidFilter, filter)
 	}
 }

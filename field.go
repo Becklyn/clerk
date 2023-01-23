@@ -22,6 +22,6 @@ func (f *Field) OfTypeSort(order *Order) *Field {
 }
 
 func (f *Field) OfTypeText() *Field {
-	f.Type = FieldTypeString
+	f.Type = FieldTypeText
 	return f
 }
