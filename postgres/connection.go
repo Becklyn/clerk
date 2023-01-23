@@ -48,7 +48,7 @@ func (c *Connection) useDatabase(ctx context.Context, database string) (*pgx.Con
 		return nil, func() {}, err
 	}
 
-	if tx, ok := ctx.Value(txCtxData{}).(*transactionCtx); ok {
+	if tx, ok := ctx.Value(txDataKey).(*transactionCtx); ok {
 		pgConn, err := tx.useDb(ctx, database, pool)
 		if err != nil {
 			if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{

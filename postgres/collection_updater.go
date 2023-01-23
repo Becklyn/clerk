@@ -35,15 +35,13 @@ func (u *collectionUpdater) ExecuteUpdate(
 	updateCtx, cancel := u.conn.config.GetContext(ctx)
 	defer cancel()
 
-	updateCtx, _ = useTx(updateCtx)
-
-	dbConn, release, err := u.conn.useDatabase(updateCtx, u.database.Name)
-	defer release()
-	if err != nil {
-		return err
-	}
-
 	return newTransactor().ExecuteTransaction(updateCtx, func(ctx context.Context) error {
+		dbConn, release, err := u.conn.useDatabase(updateCtx, u.database.Name)
+		defer release()
+		if err != nil {
+			return err
+		}
+
 		for _, name := range names {
 			rows, err := dbConn.Query(ctx, "SELECT indexname FROM pg_indexes WHERE tablename = $1", name)
 			if err != nil {
