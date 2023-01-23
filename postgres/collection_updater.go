@@ -55,6 +55,7 @@ func (u *collectionUpdater) ExecuteUpdate(
 			for rows.Next() {
 				var indexName string
 				if err := rows.Scan(&indexName); err != nil {
+					rows.Close()
 					return err
 				}
 

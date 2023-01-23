@@ -61,16 +61,18 @@ func (q *querier[T]) ExecuteQuery(
 	}
 
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
-	defer cancel()
 
 	dbConn, release, err := q.conn.useDatabase(queryCtx, q.collection.Database.Name)
-	defer release()
 	if err != nil {
+		release()
+		cancel()
 		return nil, err
 	}
 
 	rows, err := dbConn.Query(queryCtx, stat, vals...)
 	if err != nil {
+		release()
+		cancel()
 		return nil, err
 	}
 
@@ -78,6 +80,8 @@ func (q *querier[T]) ExecuteQuery(
 
 	go func(rows pgx.Rows) {
 		defer rows.Close()
+		defer release()
+		defer cancel()
 		defer close(channel)
 
 		for rows.Next() {

@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Becklyn/clerk/v3"
 )
@@ -49,8 +48,6 @@ func (d *deleter[T]) ExecuteDelete(
 	if err != nil {
 		return 0, err
 	}
-
-	fmt.Println(stat, vals)
 
 	cmd, err := dbConn.Exec(queryCtx, stat, vals...)
 	if err != nil {

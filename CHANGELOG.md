@@ -1,3 +1,9 @@
+# v4.0.0-alpha.1
+
+- (bc) Rework filters (In / NotIn / InArray / NotInArray)
+- (bc) Rename `FieldTypeString` to `FieldTypeText`
+- (feature) Add postgres support
+
 # v3.1.0
 
 - (feature) Add NotEquals filter

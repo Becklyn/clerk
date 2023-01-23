@@ -2,8 +2,9 @@ package postgres
 
 import (
 	"context"
-	"github.com/Becklyn/clerk/v3"
 	"strings"
+
+	"github.com/Becklyn/clerk/v3"
 )
 
 type databaseQuerier struct {
@@ -36,10 +37,10 @@ func (q *databaseQuerier) ExecuteQuery(
 	stat = strings.ReplaceAll(stat, "name", "datname")
 
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
-	defer cancel()
 
 	rows, err := q.conn.client.Query(queryCtx, stat, vals...)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
@@ -47,6 +48,7 @@ func (q *databaseQuerier) ExecuteQuery(
 
 	go func() {
 		defer rows.Close()
+		defer cancel()
 		defer close(channel)
 
 		for rows.Next() {

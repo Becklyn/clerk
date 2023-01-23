@@ -65,7 +65,7 @@ func (q *indexQuerier) ExecuteQuery(
 								case -1:
 									return clerk.FieldTypeDescending
 								case "text":
-									return clerk.FieldTypeString
+									return clerk.FieldTypeText
 								}
 								return clerk.FieldTypeAscending
 							}(),
