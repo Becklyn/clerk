@@ -16,7 +16,7 @@ type Connection struct {
 	pool   *pgxpool.Pool
 
 	sync.Mutex
-	dbPools map[string]*clerk.UsagePool[*pgxpool.Pool]
+	dbPools map[string]*pgxpool.Pool
 }
 
 func NewConnection(
@@ -34,98 +34,73 @@ func NewConnection(
 		return nil, err
 	}
 
-	c := &Connection{
+	return &Connection{
 		ctx:     ctx,
 		config:  config,
 		pool:    pool,
-		dbPools: map[string]*clerk.UsagePool[*pgxpool.Pool]{},
-	}
-	go c.dbConsCleanupTask()
-	return c, nil
-}
-
-func (c *Connection) dbConsCleanupTask() {
-	for {
-		select {
-		case <-c.ctx.Done():
-			return
-		default:
-			c.Lock()
-			for database, usagePool := range c.dbPools {
-				if usagePool.IsUnused() {
-					fmt.Printf("Closing unused database conn to %s\n", database)
-					usagePool.Get().Close()
-					delete(c.dbPools, database)
-				}
-			}
-			c.Unlock()
-		}
-	}
+		dbPools: map[string]*pgxpool.Pool{},
+	}, nil
 }
 
 func (c *Connection) useDatabase(ctx context.Context, database string) (*pgx.Conn, func(), error) {
-	pool, release, err := c.tryUseDb(ctx, database)
+	pool, err := c.tryUseDb(ctx, database)
 	if err != nil {
-		return nil, release, err
+		return nil, func() {}, err
 	}
 
 	if tx, ok := ctx.Value(txCtxData{}).(*transactionCtx); ok {
 		pgConn, err := tx.useDb(ctx, database, pool)
-		return pgConn, release, err
+		return pgConn, func() {}, err
 	}
 
 	conn, err := pool.Acquire(ctx)
-	release = func() {
-		conn.Release()
-		release()
-	}
-
 	if err != nil {
-		return nil, release, err
+		return nil, conn.Release, err
 	}
 
-	return conn.Conn(), release, nil
+	return conn.Conn(), conn.Release, nil
 }
 
 func (c *Connection) Close() {
 	c.Lock()
 	defer c.Unlock()
 
-	for _, usagePool := range c.dbPools {
-		usagePool.Get().Close()
+	for _, pool := range c.dbPools {
+		pool.Close()
 	}
 	c.pool.Close()
 }
 
-func (c *Connection) getDbPool(database string) (*pgxpool.Pool, func(), error) {
+func (c *Connection) getDbPool(database string) (*pgxpool.Pool, error) {
 	c.Lock()
 	defer c.Unlock()
 
-	usagePool, ok := c.dbPools[database]
-	if !ok {
-		dbPool, err := pgxpool.New(c.ctx, fmt.Sprintf("%s/%s", c.config.Host, database))
-		if err != nil {
-			return nil, nil, err
-		}
-
-		usagePool = clerk.NewUsagePool(dbPool, c.config.Timeout)
-		c.dbPools[database] = usagePool
+	dbPool, ok := c.dbPools[database]
+	if ok {
+		return dbPool, nil
 	}
 
-	return usagePool.Get(), usagePool.Release, nil
+	dbPool, err := pgxpool.New(c.ctx, fmt.Sprintf("%s/%s", c.config.Host, database))
+	if err != nil {
+		return nil, err
+	}
+
+	c.dbPools[database] = dbPool
+
+	return dbPool, nil
 }
 
-func (c *Connection) tryUseDb(ctx context.Context, database string) (*pgxpool.Pool, func(), error) {
-	pool, release, err := c.getDbPool(database)
+func (c *Connection) tryUseDb(ctx context.Context, database string) (*pgxpool.Pool, error) {
+	pool, err := c.getDbPool(database)
 	if err != nil {
 		if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
 			Data: []*clerk.Database{clerk.NewDatabase(database)},
 		}); errCreate != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		return c.getDbPool(database)
 	}
 
-	return pool, release, err
+	return pool, err
 }
