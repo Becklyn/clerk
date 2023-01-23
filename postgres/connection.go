@@ -43,19 +43,38 @@ func NewConnection(
 }
 
 func (c *Connection) useDatabase(ctx context.Context, database string) (*pgx.Conn, func(), error) {
-	pool, err := c.tryUseDb(ctx, database)
+	pool, err := c.getDbPool(database)
 	if err != nil {
 		return nil, func() {}, err
 	}
 
 	if tx, ok := ctx.Value(txCtxData{}).(*transactionCtx); ok {
 		pgConn, err := tx.useDb(ctx, database, pool)
+		if err != nil {
+			if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
+				Data: []*clerk.Database{clerk.NewDatabase(database)},
+			}); errCreate != nil {
+				return nil, func() {}, err
+			}
+
+			pgConn, err = tx.useDb(ctx, database, pool)
+		}
+
 		return pgConn, func() {}, err
 	}
 
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
-		return nil, func() {}, err
+		if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
+			Data: []*clerk.Database{clerk.NewDatabase(database)},
+		}); errCreate != nil {
+			return nil, func() {}, err
+		}
+
+		conn, err = pool.Acquire(ctx)
+		if err != nil {
+			return nil, func() {}, err
+		}
 	}
 
 	return conn.Conn(), conn.Release, nil
@@ -88,19 +107,4 @@ func (c *Connection) getDbPool(database string) (*pgxpool.Pool, error) {
 	c.dbPools[database] = dbPool
 
 	return dbPool, nil
-}
-
-func (c *Connection) tryUseDb(ctx context.Context, database string) (*pgxpool.Pool, error) {
-	pool, err := c.getDbPool(database)
-	if err != nil {
-		if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
-			Data: []*clerk.Database{clerk.NewDatabase(database)},
-		}); errCreate != nil {
-			return nil, err
-		}
-
-		return c.getDbPool(database)
-	}
-
-	return pool, err
 }
