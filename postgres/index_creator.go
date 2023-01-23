@@ -12,14 +12,16 @@ import (
 var ErrTextIndexNotSupported = errors.New("cannot use text indices with postgres")
 
 type indexCreator struct {
-	conn       *Connection
-	collection *clerk.Collection
+	conn              *Connection
+	collection        *clerk.Collection
+	collectionCreator *collectionCreator
 }
 
 func newIndexCreator(conn *Connection, collection *clerk.Collection) *indexCreator {
 	return &indexCreator{
-		conn:       conn,
-		collection: collection,
+		conn:              conn,
+		collection:        collection,
+		collectionCreator: newCollectionCreator(conn, collection.Database),
 	}
 }
 
@@ -71,7 +73,17 @@ func (c *indexCreator) ExecuteCreate(
 		stmt := fmt.Sprintf("CREATE %sINDEX IF NOT EXISTS %s ON %s (%s)", unique, indexName, c.collection.Name, columns)
 
 		if _, err = dbConn.Exec(createCtx, stmt); err != nil {
-			return err
+			if err := c.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
+				Data: []*clerk.Collection{
+					c.collection,
+				},
+			}); err != nil {
+				return err
+			}
+
+			if _, err = dbConn.Exec(createCtx, stmt); err != nil {
+				return err
+			}
 		}
 	}
 

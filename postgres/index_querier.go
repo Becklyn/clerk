@@ -11,14 +11,16 @@ import (
 )
 
 type indexQuerier struct {
-	conn       *Connection
-	collection *clerk.Collection
+	conn              *Connection
+	collection        *clerk.Collection
+	collectionCreator *collectionCreator
 }
 
 func newIndexQuerier(conn *Connection, collection *clerk.Collection) *indexQuerier {
 	return &indexQuerier{
-		conn:       conn,
-		collection: collection,
+		conn:              conn,
+		collection:        collection,
+		collectionCreator: newCollectionCreator(conn, collection.Database),
 	}
 }
 
@@ -45,17 +47,32 @@ func (q *indexQuerier) ExecuteQuery(
 		return nil, err
 	}
 
-	rows, err := func() (pgx.Rows, error) {
+	createFn := func() (pgx.Rows, error) {
 		if name == "" {
 			return dbConn.Query(ctx, "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = $1", q.collection.Name)
 		}
 
 		return dbConn.Query(ctx, "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = $1 AND indexname = $2", q.collection.Name, name)
-	}()
+	}
+
+	rows, err := createFn()
 	if err != nil {
-		release()
-		cancel()
-		return nil, err
+		if err := q.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
+			Data: []*clerk.Collection{
+				q.collection,
+			},
+		}); err != nil {
+			release()
+			cancel()
+			return nil, err
+		}
+
+		rows, err = createFn()
+		if err != nil {
+			release()
+			cancel()
+			return nil, err
+		}
 	}
 
 	channel := make(chan *clerk.Index)
