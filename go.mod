@@ -1,4 +1,4 @@
-module github.com/Becklyn/clerk/v3
+module github.com/Becklyn/clerk/v4
 
 go 1.19
 
