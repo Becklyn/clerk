@@ -1,3 +1,7 @@
+# v4.0.0-alpha.2
+
+- (bug) correct version tagging
+
 # v4.0.0-alpha.1
 
 - (bc) Rework filters (In / NotIn / InArray / NotInArray)
