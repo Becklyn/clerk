@@ -10,14 +10,16 @@ import (
 )
 
 type updater[T any] struct {
-	conn       *Connection
-	collection *clerk.Collection
+	conn              *Connection
+	collection        *clerk.Collection
+	collectionCreator *collectionCreator
 }
 
 func newUpdater[T any](conn *Connection, collection *clerk.Collection) *updater[T] {
 	return &updater[T]{
-		conn:       conn,
-		collection: collection,
+		conn:              conn,
+		collection:        collection,
+		collectionCreator: newCollectionCreator(conn, collection.Database),
 	}
 }
 
@@ -65,7 +67,18 @@ func (u *updater[T]) upsertData(ctx context.Context, dbConn *pgx.Conn, dataMap m
 		return err
 	}
 
-	_, err = dbConn.Exec(ctx, stat, vals...)
+	if _, err = dbConn.Exec(ctx, stat, vals...); err != nil {
+		if err := u.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
+			Data: []*clerk.Collection{
+				u.collection,
+			},
+		}); err != nil {
+			return err
+		}
+
+		_, err = dbConn.Exec(ctx, stat, vals...)
+		return err
+	}
 	return err
 }
 

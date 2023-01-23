@@ -1,6 +1,7 @@
-# vNext
+# v4.0.0-alpha.3
 
 - (bug) Cleanup tests
+- (bug) Create postgres table if not exists on queries and upserts
 
 # v4.0.0-alpha.2
 

@@ -10,14 +10,16 @@ import (
 )
 
 type querier[T any] struct {
-	conn       *Connection
-	collection *clerk.Collection
+	conn              *Connection
+	collection        *clerk.Collection
+	collectionCreator *collectionCreator
 }
 
 func newQuerier[T any](conn *Connection, collection *clerk.Collection) *querier[T] {
 	return &querier[T]{
-		conn:       conn,
-		collection: collection,
+		conn:              conn,
+		collection:        collection,
+		collectionCreator: newCollectionCreator(conn, collection.Database),
 	}
 }
 
@@ -69,11 +71,24 @@ func (q *querier[T]) ExecuteQuery(
 		return nil, err
 	}
 
-	rows, err := dbConn.Query(queryCtx, stat, vals...)
+	rows, err := dbConn.Query(ctx, stat, vals...)
 	if err != nil {
-		release()
-		cancel()
-		return nil, err
+		if err := q.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
+			Data: []*clerk.Collection{
+				q.collection,
+			},
+		}); err != nil {
+			release()
+			cancel()
+			return nil, err
+		}
+
+		rows, err = dbConn.Query(ctx, stat, vals...)
+		if err != nil {
+			release()
+			cancel()
+			return nil, err
+		}
 	}
 
 	channel := make(chan T)
