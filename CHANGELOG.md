@@ -1,6 +1,7 @@
 # v4.0.0-alpha.3
 
 - (bug) Cleanup tests
+- (bug) Fix connection concurrency issues
 - (bug) Create postgres table if not exists on queries and upserts
 
 # v4.0.0-alpha.2

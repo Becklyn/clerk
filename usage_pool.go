@@ -11,7 +11,7 @@ var (
 )
 
 type UsagePool[T any] struct {
-	sync.Mutex
+	sync.RWMutex
 	ref       T
 	counter   uint
 	expiresIn time.Duration
@@ -23,7 +23,7 @@ func NewUsagePool[T any](
 	expiresIn time.Duration,
 ) *UsagePool[T] {
 	return &UsagePool[T]{
-		Mutex:     sync.Mutex{},
+		RWMutex:   sync.RWMutex{},
 		ref:       ref,
 		counter:   0,
 		expiresIn: expiresIn,
@@ -52,8 +52,8 @@ func (r *UsagePool[T]) Release() {
 }
 
 func (r *UsagePool[T]) IsUnused() bool {
-	r.Lock()
-	defer r.Unlock()
+	r.RLock()
+	defer r.RUnlock()
 
 	return r.counter == 0 && time.Now().After(r.expiresAt)
 }

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/Becklyn/clerk/v4"
 	"github.com/jackc/pgx/v5"
@@ -12,6 +13,8 @@ type Connection struct {
 	ctx    context.Context
 	config Config
 	client *pgx.Conn
+
+	sync.Mutex
 	dbCons map[string]*clerk.UsagePool[*pgx.Conn]
 }
 
@@ -46,6 +49,7 @@ func (c *Connection) dbConsCleanupTask() {
 		case <-c.ctx.Done():
 			return
 		default:
+			c.Lock()
 			for database, usagePool := range c.dbCons {
 				if usagePool.IsUnused() {
 					fmt.Printf("Closing unused database conn to %s\n", database)
@@ -53,6 +57,7 @@ func (c *Connection) dbConsCleanupTask() {
 					delete(c.dbCons, database)
 				}
 			}
+			c.Unlock()
 		}
 	}
 }
@@ -72,6 +77,9 @@ func (c *Connection) useDatabase(ctx context.Context, database string) (*pgx.Con
 }
 
 func (c *Connection) Close(handler func(err error)) {
+	c.Lock()
+	defer c.Unlock()
+
 	for _, usagePool := range c.dbCons {
 		err := usagePool.Get().Close(c.ctx)
 		if err != nil && handler != nil {
@@ -84,6 +92,9 @@ func (c *Connection) Close(handler func(err error)) {
 }
 
 func (c *Connection) getDbClient(database string) (*pgx.Conn, func(), error) {
+	c.Lock()
+	defer c.Unlock()
+
 	usagePool, ok := c.dbCons[database]
 	if !ok {
 		client, err := pgx.Connect(c.ctx, fmt.Sprintf("%s/%s", c.config.Host, database))
