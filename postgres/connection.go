@@ -55,7 +55,7 @@ func (c *Connection) useDatabase(ctx context.Context, database string) (*pgx.Con
 
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
-		return nil, conn.Release, err
+		return nil, func() {}, err
 	}
 
 	return conn.Conn(), conn.Release, nil
