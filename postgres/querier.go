@@ -50,8 +50,11 @@ func (q *querier[T]) ExecuteQuery(
 		return nil, err
 	}
 
+	if condition != nil {
+		statBuilder = statBuilder.Where(condition)
+	}
+
 	stat, vals, err := statBuilder.
-		Where(condition).
 		ToSql()
 	if err != nil {
 		return nil, err
