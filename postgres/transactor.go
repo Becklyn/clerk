@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 	"github.com/jackc/pgx/v5"
 )
 

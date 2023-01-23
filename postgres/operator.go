@@ -1,6 +1,6 @@
 package postgres
 
-import "github.com/Becklyn/clerk/v3"
+import "github.com/Becklyn/clerk/v4"
 
 type Operator[T any] struct {
 	querier[T]

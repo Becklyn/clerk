@@ -7,7 +7,7 @@
 Adding _clerk_ to your Go module is as easy as calling this command in your project
 
 ```shell
-go get github.com/Becklyn/clerk/v3
+go get github.com/Becklyn/clerk/v4
 ```
 
 ## Supported databases
@@ -30,13 +30,13 @@ The examples given below all use the _MongoDB_ operators.
 ```go
 connection, err := mongodb.NewConnection(context.Background(), "mongodb://localhost:27017")
 if err != nil {
-	panic(err)
+ panic(err)
 }
 
 defer connection.Close(func(err error) {
-	if err != nil {
-		panic(err)
-	}
+ if err != nil {
+  panic(err)
+ }
 })
 ```
 

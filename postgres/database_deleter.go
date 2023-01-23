@@ -2,8 +2,9 @@ package postgres
 
 import (
 	"context"
-	"github.com/Becklyn/clerk/v3"
 	"strings"
+
+	"github.com/Becklyn/clerk/v4"
 )
 
 type databaseDeleter struct {

@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 )
 
 type collectionBase struct {

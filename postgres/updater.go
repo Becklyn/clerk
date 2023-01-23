@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"go.mongodb.org/mongo-driver/bson"

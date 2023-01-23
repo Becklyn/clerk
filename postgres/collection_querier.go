@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 	sq "github.com/Masterminds/squirrel"
 )
 

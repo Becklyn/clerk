@@ -1,9 +1,10 @@
 package postgres
 
 import (
-	"github.com/Becklyn/clerk/v3"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/Becklyn/clerk/v4"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_JsonKeyToSelector(t *testing.T) {

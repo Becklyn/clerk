@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 	"github.com/samber/lo"
 )
 

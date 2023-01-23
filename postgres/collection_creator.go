@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 )
 
 type collectionCreator struct {

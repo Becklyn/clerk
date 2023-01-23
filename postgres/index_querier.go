@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 	"github.com/jackc/pgx/v5"
 	"github.com/samber/lo"
 )

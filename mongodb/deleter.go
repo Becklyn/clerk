@@ -3,7 +3,7 @@ package mongodb
 import (
 	"context"
 
-	"github.com/Becklyn/clerk/v3"
+	"github.com/Becklyn/clerk/v4"
 )
 
 type deleter[T any] struct {

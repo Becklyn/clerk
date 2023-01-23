@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Becklyn/clerk/v3"
-	"github.com/Becklyn/clerk/v3/postgres"
+	"github.com/Becklyn/clerk/v4"
+	"github.com/Becklyn/clerk/v4/postgres"
 	"github.com/stretchr/testify/assert"
 )
 
