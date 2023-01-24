@@ -15,6 +15,7 @@ type indexCreator struct {
 	conn              *Connection
 	collection        *clerk.Collection
 	collectionCreator *collectionCreator
+	transactor        *transactor
 }
 
 func newIndexCreator(conn *Connection, collection *clerk.Collection) *indexCreator {
@@ -22,6 +23,7 @@ func newIndexCreator(conn *Connection, collection *clerk.Collection) *indexCreat
 		conn:              conn,
 		collection:        collection,
 		collectionCreator: newCollectionCreator(conn, collection.Database),
+		transactor:        newTransactor(conn),
 	}
 }
 
@@ -31,12 +33,6 @@ func (c *indexCreator) ExecuteCreate(
 ) error {
 	createCtx, cancel := c.conn.config.GetContext(ctx)
 	defer cancel()
-
-	dbConn, release, err := c.conn.useDatabase(createCtx, c.collection.Database.Name)
-	defer release()
-	if err != nil {
-		return err
-	}
 
 	for _, index := range create.Data {
 		for _, field := range index.Fields {
@@ -72,18 +68,17 @@ func (c *indexCreator) ExecuteCreate(
 
 		stmt := fmt.Sprintf("CREATE %sINDEX IF NOT EXISTS %s ON %s (%s)", unique, indexName, c.collection.Name, columns)
 
-		if _, err = dbConn.Exec(createCtx, stmt); err != nil {
-			if err := c.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
-				Data: []*clerk.Collection{
-					c.collection,
-				},
-			}); err != nil {
+		if err := c.transactor.ExecuteTransaction(createCtx, func(ctx context.Context) error {
+			dbConn, release, err := c.conn.createOrUseDatabase(ctx, c.collection.Database.Name)
+			defer release()
+			if err != nil {
 				return err
 			}
 
-			if _, err = dbConn.Exec(createCtx, stmt); err != nil {
-				return err
-			}
+			_, err = dbConn.Exec(ctx, stmt)
+			return err
+		}); err != nil {
+			return err
 		}
 	}
 

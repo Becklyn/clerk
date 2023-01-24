@@ -9,12 +9,14 @@ import (
 type deleter[T any] struct {
 	conn       *Connection
 	collection *clerk.Collection
+	transactor *transactor
 }
 
 func newDeleter[T any](conn *Connection, collection *clerk.Collection) *deleter[T] {
 	return &deleter[T]{
 		conn:       conn,
 		collection: collection,
+		transactor: newTransactor(conn),
 	}
 }
 
@@ -43,16 +45,22 @@ func (d *deleter[T]) ExecuteDelete(
 	queryCtx, cancel := d.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := d.conn.useDatabase(queryCtx, d.collection.Database.Name)
-	defer release()
-	if err != nil {
-		return 0, err
-	}
+	var rowsAffected int
 
-	cmd, err := dbConn.Exec(queryCtx, stat, vals...)
-	if err != nil {
-		return 0, err
-	}
+	err = d.transactor.ExecuteTransaction(queryCtx, func(ctx context.Context) error {
+		dbConn, release, err := d.conn.createOrUseDatabase(ctx, d.collection.Database.Name)
+		defer release()
+		if err != nil {
+			return err
+		}
 
-	return int(cmd.RowsAffected()), nil
+		cmd, err := dbConn.Exec(ctx, stat, vals...)
+		if err != nil {
+			return err
+		}
+
+		rowsAffected = int(cmd.RowsAffected())
+		return nil
+	})
+	return rowsAffected, err
 }

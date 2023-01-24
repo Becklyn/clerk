@@ -12,8 +12,8 @@ import (
 func Test_Querier_FindsASingleEntity(t *testing.T) {
 	conn := postgres.NewIntegrationConnection(t)
 
-	database := clerk.NewDatabase("integration")
-	collection := clerk.NewCollection(database, "finds_a_single_entity")
+	database := clerk.NewDatabase("test_database")
+	collection := clerk.NewCollection(database, "test_collection")
 
 	type Message struct {
 		Id   string `bson:"_id"`
@@ -21,7 +21,7 @@ func Test_Querier_FindsASingleEntity(t *testing.T) {
 	}
 
 	message := Message{
-		Id:   "1",
+		Id:   "2",
 		Text: "Hello World",
 	}
 

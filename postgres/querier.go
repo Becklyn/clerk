@@ -2,9 +2,7 @@ package postgres
 
 import (
 	"context"
-
 	"github.com/Becklyn/clerk/v4"
-	"github.com/jackc/pgx/v5"
 	"github.com/xdg-go/jibby"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -13,6 +11,7 @@ type querier[T any] struct {
 	conn              *Connection
 	collection        *clerk.Collection
 	collectionCreator *collectionCreator
+	transactor        *transactor
 }
 
 func newQuerier[T any](conn *Connection, collection *clerk.Collection) *querier[T] {
@@ -20,6 +19,7 @@ func newQuerier[T any](conn *Connection, collection *clerk.Collection) *querier[
 		conn:              conn,
 		collection:        collection,
 		collectionCreator: newCollectionCreator(conn, collection.Database),
+		transactor:        newTransactor(conn),
 	}
 }
 
@@ -65,66 +65,56 @@ func (q *querier[T]) ExecuteQuery(
 	}
 
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
+	defer cancel()
 
-	dbConn, release, err := q.conn.useDatabase(queryCtx, q.collection.Database.Name)
-	if err != nil {
-		release()
-		cancel()
-		return nil, err
-	}
+	var elements []T
 
-	rows, err := dbConn.Query(ctx, stat, vals...)
-	if err != nil {
-		if err := q.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
-			Data: []*clerk.Collection{
-				q.collection,
-			},
-		}); err != nil {
-			release()
-			cancel()
-			return nil, err
-		}
-
-		rows, err = dbConn.Query(ctx, stat, vals...)
+	if err := q.transactor.ExecuteTransaction(queryCtx, func(ctx context.Context) error {
+		dbConn, release, err := q.conn.createOrUseDatabase(ctx, q.collection.Database.Name)
+		defer release()
 		if err != nil {
-			release()
-			cancel()
-			return nil, err
+			return err
 		}
+
+		rows, err := dbConn.Query(ctx, stat, vals...)
+		defer rows.Close()
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var data []byte
+			if err := rows.Scan(&data); err != nil {
+				return err
+			}
+
+			dataAsBson := make(bson.Raw, 0, len(data))
+			dataAsBson, err := jibby.Unmarshal(data, dataAsBson)
+			if err != nil {
+				return err
+			}
+
+			var result T
+			if err := bson.Unmarshal(dataAsBson, &result); err != nil {
+				return err
+			}
+			elements = append(elements, result)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	channel := make(chan T)
 
-	go func(rows pgx.Rows) {
-		defer rows.Close()
-		defer release()
-		defer cancel()
+	go func() {
 		defer close(channel)
 
-		for rows.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				var data []byte
-				if err := rows.Scan(&data); err != nil {
-					return
-				}
-
-				dataAsBson := make(bson.Raw, 0, len(data))
-				dataAsBson, err := jibby.Unmarshal(data, dataAsBson)
-				if err != nil {
-					return
-				}
-
-				var result T
-				if err := bson.Unmarshal(dataAsBson, &result); err != nil {
-					panic(err)
-				}
-				channel <- result
-			}
+		for _, element := range elements {
+			channel <- element
 		}
-	}(rows)
+	}()
 
 	return channel, nil
 }

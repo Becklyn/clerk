@@ -1,6 +1,8 @@
 package clerk
 
-import "context"
+import (
+	"context"
+)
 
 type TransactionFn func(ctx context.Context) error
 

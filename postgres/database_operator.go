@@ -12,6 +12,6 @@ func NewDatabaseOperator(connection *Connection) *DatabaseOperator {
 		databaseCreator: *newDatabaseCreator(connection),
 		databaseQuerier: *newDatabaseQuerier(connection),
 		databaseDeleter: *newDatabaseDeleter(connection),
-		transactor:      *newTransactor(),
+		transactor:      *newTransactor(connection),
 	}
 }

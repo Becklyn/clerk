@@ -37,27 +37,32 @@ func (q *databaseQuerier) ExecuteQuery(
 	stat = strings.ReplaceAll(stat, "name", "datname")
 
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
+	defer cancel()
 
 	rows, err := q.conn.pool.Query(queryCtx, stat, vals...)
+	defer rows.Close()
 	if err != nil {
-		cancel()
 		return nil, err
+	}
+
+	var databases []*clerk.Database
+
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+
+		databases = append(databases, clerk.NewDatabase(name))
 	}
 
 	channel := make(chan *clerk.Database)
 
 	go func() {
-		defer rows.Close()
-		defer cancel()
 		defer close(channel)
 
-		for rows.Next() {
-			var name string
-			if err := rows.Scan(&name); err != nil {
-				return
-			}
-
-			channel <- clerk.NewDatabase(name)
+		for _, database := range databases {
+			channel <- database
 		}
 	}()
 

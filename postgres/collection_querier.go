@@ -51,38 +51,40 @@ func (q *collectionQuerier) ExecuteQuery(
 	stat = strings.ReplaceAll(stat, " name ", " tablename ")
 
 	queryCtx, cancel := q.conn.config.GetContext(ctx)
+	defer cancel()
 
-	dbConn, release, err := q.conn.useDatabase(queryCtx, q.database.Name)
+	dbConn, release, err := q.conn.createOrUseDatabase(queryCtx, q.database.Name)
+	defer release()
 	if err != nil {
-		release()
-		cancel()
 		return nil, err
 	}
 
 	rows, err := dbConn.Query(queryCtx, stat, vals...)
+	defer rows.Close()
 	if err != nil {
-		release()
-		cancel()
 		return nil, err
+	}
+
+	var collections []*clerk.Collection
+
+	for rows.Next() {
+		var name string
+
+		err := rows.Scan(&name)
+		if err != nil {
+			return nil, err
+		}
+
+		collections = append(collections, clerk.NewCollection(q.database, name))
 	}
 
 	channel := make(chan *clerk.Collection)
 
 	go func() {
-		defer rows.Close()
-		defer release()
-		defer cancel()
 		defer close(channel)
 
-		for rows.Next() {
-			var name string
-
-			err := rows.Scan(&name)
-			if err != nil {
-				return
-			}
-
-			channel <- clerk.NewCollection(q.database, name)
+		for _, collection := range collections {
+			channel <- collection
 		}
 	}()
 

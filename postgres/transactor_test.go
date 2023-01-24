@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/Becklyn/clerk/v4"
@@ -66,7 +67,8 @@ func TestTransactor_Commit(t *testing.T) {
 	id := uuid.NewV4().String()
 
 	err := clerk.NewTransaction(databaseOperator).Run(context.Background(), func(ctx context.Context) error {
-		err := operator.ExecuteCreate(ctx, &clerk.Create[*Message]{
+		called = true
+		return operator.ExecuteCreate(ctx, &clerk.Create[*Message]{
 			Data: []*Message{
 				{
 					Id:   id,
@@ -74,10 +76,6 @@ func TestTransactor_Commit(t *testing.T) {
 				},
 			},
 		})
-		assert.NoError(t, err)
-
-		called = true
-		return nil
 	})
 	assert.NoError(t, err)
 	assert.True(t, called)
@@ -87,6 +85,7 @@ func TestTransactor_Commit(t *testing.T) {
 		Single(context.Background())
 	assert.NoError(t, err)
 
+	fmt.Println(result)
 	assert.Equal(t, id, result.Id)
 }
 
@@ -107,7 +106,8 @@ func TestTransactor_Nested(t *testing.T) {
 
 	err := clerk.NewTransaction(databaseOperator).Run(context.Background(), func(ctx context.Context) error {
 		return clerk.NewTransaction(databaseOperator).Run(ctx, func(ctx context.Context) error {
-			err := operator.ExecuteCreate(ctx, &clerk.Create[*Message]{
+			called = true
+			return operator.ExecuteCreate(ctx, &clerk.Create[*Message]{
 				Data: []*Message{
 					{
 						Id:   id,
@@ -115,10 +115,6 @@ func TestTransactor_Nested(t *testing.T) {
 					},
 				},
 			})
-			assert.NoError(t, err)
-
-			called = true
-			return nil
 		})
 	})
 	assert.NoError(t, err)

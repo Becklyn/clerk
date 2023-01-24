@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,10 @@ func NewIntegrationConnection(t *testing.T) *Connection {
 
 	connection, err := NewConnection(
 		context.Background(),
-		DefaultConfig(host),
+		Config{
+			Host:    host,
+			Timeout: time.Hour,
+		},
 	)
 	assert.NoError(t, err)
 	return connection

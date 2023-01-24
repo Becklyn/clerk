@@ -42,27 +42,36 @@ func NewConnection(
 	}, nil
 }
 
-func (c *Connection) useDatabase(ctx context.Context, database string) (*pgx.Conn, func(), error) {
-	pool, err := c.getDbPool(database)
+func (c *Connection) createOrUseDatabase(ctx context.Context, database string) (*pgx.Conn, func(), error) {
+	pool, err := c.createOrUseDbPool(database)
 	if err != nil {
 		return nil, func() {}, err
 	}
 
 	if tx, ok := ctx.Value(txDataKey).(*transactionCtx); ok {
-		pgConn, err := tx.useDb(ctx, database, pool)
-		if err != nil {
-			if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
-				Data: []*clerk.Database{clerk.NewDatabase(database)},
-			}); errCreate != nil {
-				return nil, func() {}, err
-			}
+		return c.createOrUseDatabaseWithTransaction(ctx, tx, pool, database)
+	}
+	return c.createOrUseDatabaseWithoutTransaction(ctx, pool, database)
+}
 
-			pgConn, err = tx.useDb(ctx, database, pool)
+func (c *Connection) createOrUseDatabaseWithTransaction(ctx context.Context, tx *transactionCtx, pool *pgxpool.Pool, database string) (*pgx.Conn, func(), error) {
+	pgConn, err := tx.createOrUse(ctx, database, pool)
+	if err != nil {
+		if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
+			Data: []*clerk.Database{
+				clerk.NewDatabase(database),
+			},
+		}); errCreate != nil {
+			return nil, func() {}, err
 		}
 
-		return pgConn, func() {}, err
+		pgConn, err = tx.createOrUse(ctx, database, pool)
 	}
 
+	return pgConn, func() {}, err
+}
+
+func (c *Connection) createOrUseDatabaseWithoutTransaction(ctx context.Context, pool *pgxpool.Pool, database string) (*pgx.Conn, func(), error) {
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		if errCreate := newDatabaseCreator(c).ExecuteCreate(ctx, &clerk.Create[*clerk.Database]{
@@ -90,7 +99,7 @@ func (c *Connection) Close() {
 	c.pool.Close()
 }
 
-func (c *Connection) getDbPool(database string) (*pgxpool.Pool, error) {
+func (c *Connection) createOrUseDbPool(database string) (*pgxpool.Pool, error) {
 	c.Lock()
 	defer c.Unlock()
 

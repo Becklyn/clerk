@@ -14,6 +14,7 @@ type indexQuerier struct {
 	conn              *Connection
 	collection        *clerk.Collection
 	collectionCreator *collectionCreator
+	transactor        *transactor
 }
 
 func newIndexQuerier(conn *Connection, collection *clerk.Collection) *indexQuerier {
@@ -21,6 +22,7 @@ func newIndexQuerier(conn *Connection, collection *clerk.Collection) *indexQueri
 		conn:              conn,
 		collection:        collection,
 		collectionCreator: newCollectionCreator(conn, collection.Database),
+		transactor:        newTransactor(conn),
 	}
 }
 
@@ -38,16 +40,7 @@ func (q *indexQuerier) ExecuteQuery(
 		}
 	}
 
-	queryCtx, cancel := q.conn.config.GetContext(ctx)
-
-	dbConn, release, err := q.conn.useDatabase(queryCtx, q.collection.Database.Name)
-	if err != nil {
-		release()
-		cancel()
-		return nil, err
-	}
-
-	createFn := func() (pgx.Rows, error) {
+	createFn := func(ctx context.Context, dbConn *pgx.Conn) (pgx.Rows, error) {
 		if name == "" {
 			return dbConn.Query(ctx, "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = $1", q.collection.Name)
 		}
@@ -55,33 +48,23 @@ func (q *indexQuerier) ExecuteQuery(
 		return dbConn.Query(ctx, "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = $1 AND indexname = $2", q.collection.Name, name)
 	}
 
-	rows, err := createFn()
-	if err != nil {
-		if err := q.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
-			Data: []*clerk.Collection{
-				q.collection,
-			},
-		}); err != nil {
-			release()
-			cancel()
-			return nil, err
-		}
+	queryCtx, cancel := q.conn.config.GetContext(ctx)
+	defer cancel()
 
-		rows, err = createFn()
-		if err != nil {
-			release()
-			cancel()
-			return nil, err
-		}
-	}
+	var indices []*clerk.Index
 
-	channel := make(chan *clerk.Index)
-
-	go func() {
-		defer rows.Close()
+	if err := q.transactor.ExecuteTransaction(queryCtx, func(ctx context.Context) error {
+		dbConn, release, err := q.conn.createOrUseDatabase(ctx, q.collection.Database.Name)
 		defer release()
-		defer cancel()
-		defer close(channel)
+		if err != nil {
+			return err
+		}
+
+		rows, err := createFn(ctx, dbConn)
+		defer rows.Close()
+		if err != nil {
+			return err
+		}
 
 		for rows.Next() {
 			index := &clerk.Index{}
@@ -92,7 +75,7 @@ func (q *indexQuerier) ExecuteQuery(
 			)
 
 			if err := rows.Scan(&indexName, &indexDef); err != nil {
-				return
+				return err
 			}
 
 			index.Name = strings.TrimPrefix(indexName, q.collection.Name+"_")
@@ -101,6 +84,20 @@ func (q *indexQuerier) ExecuteQuery(
 				return getFieldFromDef(fieldDef)
 			})
 
+			indices = append(indices, index)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	channel := make(chan *clerk.Index)
+
+	go func() {
+		defer close(channel)
+
+		for _, index := range indices {
 			channel <- index
 		}
 	}()

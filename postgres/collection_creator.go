@@ -24,7 +24,7 @@ func (c *collectionCreator) ExecuteCreate(
 	createCtx, cancel := c.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := c.conn.useDatabase(createCtx, c.database.Name)
+	dbConn, release, err := c.conn.createOrUseDatabase(createCtx, c.database.Name)
 	defer release()
 	if err != nil {
 		return err

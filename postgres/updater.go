@@ -13,6 +13,7 @@ type updater[T any] struct {
 	conn              *Connection
 	collection        *clerk.Collection
 	collectionCreator *collectionCreator
+	transactor        *transactor
 }
 
 func newUpdater[T any](conn *Connection, collection *clerk.Collection) *updater[T] {
@@ -20,6 +21,7 @@ func newUpdater[T any](conn *Connection, collection *clerk.Collection) *updater[
 		conn:              conn,
 		collection:        collection,
 		collectionCreator: newCollectionCreator(conn, collection.Database),
+		transactor:        newTransactor(conn),
 	}
 }
 
@@ -43,17 +45,19 @@ func (u *updater[T]) ExecuteUpdate(ctx context.Context, update *clerk.Update[T])
 	updateCtx, cancel := u.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := u.conn.useDatabase(ctx, u.collection.Database.Name)
-	defer release()
-	if err != nil {
-		return err
-	}
+	return u.transactor.ExecuteTransaction(updateCtx, func(ctx context.Context) error {
+		dbConn, release, err := u.conn.createOrUseDatabase(ctx, u.collection.Database.Name)
+		defer release()
+		if err != nil {
+			return err
+		}
 
-	if update.ShouldUpsert {
-		return u.upsertData(updateCtx, dbConn, dataMap, condition)
-	}
+		if update.ShouldUpsert {
+			return u.upsertData(ctx, dbConn, dataMap, condition)
+		}
 
-	return u.updateData(updateCtx, dbConn, dataMap, condition)
+		return u.updateData(ctx, dbConn, dataMap, condition)
+	})
 }
 
 func (u *updater[T]) upsertData(ctx context.Context, dbConn *pgx.Conn, dataMap map[string]any, condition squirrel.Sqlizer) error {
@@ -67,18 +71,7 @@ func (u *updater[T]) upsertData(ctx context.Context, dbConn *pgx.Conn, dataMap m
 		return err
 	}
 
-	if _, err = dbConn.Exec(ctx, stat, vals...); err != nil {
-		if err := u.collectionCreator.ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
-			Data: []*clerk.Collection{
-				u.collection,
-			},
-		}); err != nil {
-			return err
-		}
-
-		_, err = dbConn.Exec(ctx, stat, vals...)
-		return err
-	}
+	_, err = dbConn.Exec(ctx, stat, vals...)
 	return err
 }
 

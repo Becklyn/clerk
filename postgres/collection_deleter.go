@@ -35,7 +35,7 @@ func (d *collectionDeleter) ExecuteDelete(
 	deleteCtx, cancel := d.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := d.conn.useDatabase(deleteCtx, d.database.Name)
+	dbConn, release, err := d.conn.createOrUseDatabase(deleteCtx, d.database.Name)
 	defer release()
 	if err != nil {
 		return 0, err

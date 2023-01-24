@@ -2,6 +2,7 @@
 
 - (bug) Cleanup tests
 - (bug) Fix connection concurrency issues
+- (bug) Fix connection transaction issues
 - (bug) Use connection pool
 - (bug) Create postgres table if not exists on queries and upserts
 

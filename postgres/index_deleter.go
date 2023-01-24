@@ -11,12 +11,14 @@ import (
 type indexDeleter struct {
 	conn       *Connection
 	collection *clerk.Collection
+	transactor *transactor
 }
 
 func newIndexDeleter(conn *Connection, collection *clerk.Collection) *indexDeleter {
 	return &indexDeleter{
 		conn:       conn,
 		collection: collection,
+		transactor: newTransactor(conn),
 	}
 }
 
@@ -37,14 +39,14 @@ func (d *indexDeleter) ExecuteDelete(
 	deleteCtx, cancel := d.conn.config.GetContext(ctx)
 	defer cancel()
 
-	dbConn, release, err := d.conn.useDatabase(deleteCtx, d.collection.Database.Name)
-	defer release()
-	if err != nil {
-		return 0, err
-	}
+	if err := d.transactor.ExecuteTransaction(deleteCtx, func(ctx context.Context) error {
+		dbConn, release, err := d.conn.createOrUseDatabase(ctx, d.collection.Database.Name)
+		defer release()
+		if err != nil {
+			return err
+		}
 
-	if len(names) == 0 {
-		return 0, newTransactor().ExecuteTransaction(deleteCtx, func(ctx context.Context) error {
+		if len(names) == 0 {
 			rows, err := dbConn.Query(
 				ctx,
 				"SELECT indexname FROM pg_indexes WHERE tablename = $1 AND indexname != $2",
@@ -70,19 +72,23 @@ func (d *indexDeleter) ExecuteDelete(
 
 			for _, indexName := range indexNames {
 				stmt := fmt.Sprintf("DROP INDEX IF EXISTS %s", indexName)
-				if _, err := dbConn.Exec(deleteCtx, stmt); err != nil {
+				if _, err := dbConn.Exec(ctx, stmt); err != nil {
 					return err
 				}
 			}
 			return nil
-		})
-	}
-
-	for _, name := range names {
-		stmt := fmt.Sprintf("DROP INDEX IF EXISTS %s", fmt.Sprintf("%s_%s", d.collection.Name, name))
-		if _, err := dbConn.Exec(deleteCtx, stmt); err != nil {
-			return 0, err
 		}
+
+		for _, name := range names {
+			stmt := fmt.Sprintf("DROP INDEX IF EXISTS %s", fmt.Sprintf("%s_%s", d.collection.Name, name))
+			if _, err := dbConn.Exec(ctx, stmt); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return 0, err
 	}
 
 	return len(names), nil

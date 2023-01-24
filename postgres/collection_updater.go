@@ -10,11 +10,13 @@ import (
 
 type collectionUpdater struct {
 	collectionBase
+	transactor *transactor
 }
 
 func newCollectionUpdater(conn *Connection, database *clerk.Database) *collectionUpdater {
 	return &collectionUpdater{
-		*newCollectionBase(conn, database),
+		collectionBase: *newCollectionBase(conn, database),
+		transactor:     newTransactor(conn),
 	}
 }
 
@@ -35,8 +37,8 @@ func (u *collectionUpdater) ExecuteUpdate(
 	updateCtx, cancel := u.conn.config.GetContext(ctx)
 	defer cancel()
 
-	return newTransactor().ExecuteTransaction(updateCtx, func(ctx context.Context) error {
-		dbConn, release, err := u.conn.useDatabase(updateCtx, u.database.Name)
+	return u.transactor.ExecuteTransaction(updateCtx, func(ctx context.Context) error {
+		dbConn, release, err := u.conn.createOrUseDatabase(ctx, u.database.Name)
 		defer release()
 		if err != nil {
 			return err
