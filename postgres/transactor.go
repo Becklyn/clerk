@@ -43,12 +43,14 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 			return err
 		}
 
+		dbNames := lo.Keys(tx.txs)
+
 		if err := tx.Rollback(ctx); err != nil {
 			return err
 		}
 
 		if tableName, isNotExistsErr := t.isTableNotExistsError(err); isNotExistsErr {
-			return t.createTableAndReRun(ctx, txCtx, tableName, fn)
+			return t.createTableAndReRun(ctx, dbNames, tableName, fn)
 		}
 	}
 
@@ -76,11 +78,9 @@ func (t *transactor) isTableNotExistsError(err error) (string, bool) {
 	return messageParts[1], true
 }
 
-func (t *transactor) createTableAndReRun(ctx context.Context, txCtx context.Context, tableName string, fn clerk.TransactionFn) error {
-	tx, _ := newTransactionCtxFromCtx(txCtx)
-
+func (t *transactor) createTableAndReRun(ctx context.Context, dbNames []string, tableName string, fn clerk.TransactionFn) error {
 	return t.ExecuteTransaction(ctx, func(nestedCtx context.Context) error {
-		for _, dbName := range lo.Keys(tx.txs) {
+		for _, dbName := range dbNames {
 			database := clerk.NewDatabase(dbName)
 
 			if err := newCollectionCreator(t.conn, database).ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
@@ -97,7 +97,7 @@ func (t *transactor) createTableAndReRun(ctx context.Context, txCtx context.Cont
 }
 
 type transactionCtx struct {
-	sync.RWMutex
+	sync.Mutex
 	txs map[string]pgx.Tx
 }
 
@@ -113,26 +113,30 @@ func newTransactionCtxFromCtx(ctx context.Context) (*transactionCtx, bool) {
 }
 
 func (t *transactionCtx) Rollback(ctx context.Context) error {
-	t.RLock()
-	defer t.RUnlock()
+	t.Lock()
+	defer t.Unlock()
 
 	for _, tx := range t.txs {
 		if err := tx.Rollback(ctx); err != nil {
 			return err
 		}
 	}
+
+	t.txs = map[string]pgx.Tx{}
 	return nil
 }
 
 func (t *transactionCtx) Commit(ctx context.Context) error {
-	t.RLock()
-	defer t.RUnlock()
+	t.Lock()
+	defer t.Unlock()
 
 	for _, tx := range t.txs {
 		if err := tx.Commit(ctx); err != nil {
 			return err
 		}
 	}
+
+	t.txs = map[string]pgx.Tx{}
 	return nil
 }
 
