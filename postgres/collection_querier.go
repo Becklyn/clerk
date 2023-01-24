@@ -60,10 +60,10 @@ func (q *collectionQuerier) ExecuteQuery(
 	}
 
 	rows, err := dbConn.Query(queryCtx, stat, vals...)
-	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var collections []*clerk.Collection
 

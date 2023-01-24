@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+
 	"github.com/Becklyn/clerk/v4"
 	"github.com/xdg-go/jibby"
 	"go.mongodb.org/mongo-driver/bson"
@@ -77,10 +78,10 @@ func (q *querier[T]) ExecuteQuery(
 		}
 
 		rows, err := dbConn.Query(ctx, stat, vals...)
-		defer rows.Close()
 		if err != nil {
 			return err
 		}
+		defer rows.Close()
 
 		for rows.Next() {
 			var data []byte

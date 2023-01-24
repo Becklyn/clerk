@@ -38,8 +38,6 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 		txCtx, tx = t.bindNewTransactionCtx(ctx)
 	}
 
-	// problem: transaction wird commitetd / rollbacked bevor query channel konsumiert wurde
-
 	if err := fn(txCtx); err != nil {
 		if isNested {
 			return err
@@ -144,8 +142,8 @@ func (t *transactionCtx) createOrUse(ctx context.Context, dbName string, pool *p
 
 	if _, ok := t.txs[dbName]; !ok {
 		tx, err := pool.BeginTx(ctx, pgx.TxOptions{
-			//AccessMode: pgx.ReadWrite,
-			//IsoLevel:   pgx.ReadUncommitted,
+			AccessMode: pgx.ReadWrite,
+			IsoLevel:   pgx.ReadUncommitted,
 		})
 		if err != nil {
 			return nil, err

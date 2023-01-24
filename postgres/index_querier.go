@@ -61,10 +61,10 @@ func (q *indexQuerier) ExecuteQuery(
 		}
 
 		rows, err := createFn(ctx, dbConn)
-		defer rows.Close()
 		if err != nil {
 			return err
 		}
+		defer rows.Close()
 
 		for rows.Next() {
 			index := &clerk.Index{}

@@ -40,10 +40,10 @@ func (q *databaseQuerier) ExecuteQuery(
 	defer cancel()
 
 	rows, err := q.conn.pool.Query(queryCtx, stat, vals...)
-	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var databases []*clerk.Database
 
