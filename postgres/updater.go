@@ -62,7 +62,7 @@ func (u *updater[T]) ExecuteUpdate(ctx context.Context, update *clerk.Update[T])
 }
 
 func (u *updater[T]) upsertData(ctx context.Context, dbConn *pgx.Conn, dataMap map[string]any, condition squirrel.Sqlizer) error {
-	dataString, err := json.Marshal(dataMap)
+	dataBytes, err := json.Marshal(dataMap)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (u *updater[T]) upsertData(ctx context.Context, dbConn *pgx.Conn, dataMap m
 		Insert(u.collection.Name).
 		Columns("data").
 		Values(dataMap).
-		Suffix("ON CONFLICT ((data->>'_id')) DO UPDATE SET data = ?", dataString).
+		Suffix("ON CONFLICT ((data->>'_id')) DO UPDATE SET data = ?", string(dataBytes)).
 		ToSql()
 	if err != nil {
 		return err
