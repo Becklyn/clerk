@@ -3,7 +3,6 @@ package postgres_test
 import (
 	"context"
 	"errors"
-	"sync"
 	"testing"
 
 	"github.com/Becklyn/clerk/v4"
@@ -138,40 +137,84 @@ func TestTransactor_ReUse(t *testing.T) {
 	database := clerk.NewDatabase("test_database")
 	collection := clerk.NewCollection(database, "test_collection")
 	operator := postgres.NewOperator[*Message](conn, collection)
+	collectionOperator := postgres.NewCollectionOperator(conn, database)
 
 	id := uuid.NewV4().String()
+	ctx := context.Background()
 
-	wg := sync.WaitGroup{}
-	wg.Add(100)
+	called := false
+	err := clerk.NewTransaction(databaseOperator).Run(ctx, func(ctx context.Context) error {
+		called = true
+		return operator.ExecuteCreate(ctx, &clerk.Create[*Message]{
+			Data: []*Message{
+				{
+					Id:   id,
+					Text: "text",
+				},
+			},
+		})
+	})
+	assert.NoError(t, err)
+	assert.True(t, called)
 
-	for i := 0; i < 100; i++ {
-		go func() {
-			called := false
-			err := clerk.NewTransaction(databaseOperator).Run(context.Background(), func(ctx context.Context) error {
-				called = true
-				return operator.ExecuteUpdate(ctx, &clerk.Update[*Message]{
-					Data: &Message{
-						Id:   id,
-						Text: "text",
-					},
-					ShouldUpsert: true,
-					Filters: []clerk.Filter{
-						clerk.NewEquals("_id", id),
-					},
-				})
+	called = false
+	err = clerk.NewTransaction(databaseOperator).Run(ctx, func(ctx context.Context) error {
+		if !called {
+			_, err = collectionOperator.ExecuteDelete(ctx, &clerk.Delete[*clerk.Collection]{
+				Filters: []clerk.Filter{
+					clerk.NewEquals("name", "test_collection"),
+				},
 			})
 			assert.NoError(t, err)
-			assert.True(t, called)
-			wg.Done()
-		}()
-	}
+		}
 
-	wg.Wait()
+		called = true
 
-	results, err := clerk.NewQuery[*Message](operator).
-		Where(clerk.NewEquals("_id", id)).
-		All(context.Background())
+		return operator.ExecuteUpdate(ctx, &clerk.Update[*Message]{
+			Data: &Message{
+				Id:   id,
+				Text: "text",
+			},
+			ShouldUpsert: true,
+			Filters: []clerk.Filter{
+				clerk.NewEquals("_id", id),
+			},
+		})
+	})
 	assert.NoError(t, err)
+	assert.True(t, called)
 
-	assert.Len(t, results, 1)
+	called = false
+	err = clerk.NewTransaction(databaseOperator).Run(ctx, func(ctx context.Context) error {
+		called = true
+		return operator.ExecuteUpdate(ctx, &clerk.Update[*Message]{
+			Data: &Message{
+				Id:   id,
+				Text: "text",
+			},
+			ShouldUpsert: true,
+			Filters: []clerk.Filter{
+				clerk.NewEquals("_id", id),
+			},
+		})
+	})
+	assert.NoError(t, err)
+	assert.True(t, called)
+
+	called = false
+	err = clerk.NewTransaction(databaseOperator).Run(ctx, func(ctx context.Context) error {
+		called = true
+		results, err := clerk.NewQuery[*Message](operator).
+			Where(clerk.NewEquals("_id", id)).
+			All(context.Background())
+
+		assert.NoError(t, err)
+		assert.Len(t, results, 1)
+
+		return err
+	})
+	assert.NoError(t, err)
+	assert.True(t, called)
+
+	// assert.True(t, false)
 }

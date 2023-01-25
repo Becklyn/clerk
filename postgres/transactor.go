@@ -50,7 +50,7 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 		}
 
 		if tableName, isNotExistsErr := t.isTableNotExistsError(err); isNotExistsErr {
-			return t.createTableAndReRun(ctx, dbNames, tableName, fn)
+			return t.createTableAndReRunWithTransaction(ctx, dbNames, tableName, fn)
 		}
 		return err
 	}
@@ -58,6 +58,21 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 	if !isNested {
 		return tx.Commit(ctx)
 	}
+	return nil
+}
+
+func (t *transactor) ExecuteInTransactionIfAvailable(ctx context.Context, dbName string, tableName string, fn clerk.TransactionFn) error {
+	if _, isNested := newTransactionCtxFromCtx(ctx); isNested {
+		return t.ExecuteTransaction(ctx, fn)
+	}
+
+	if err := fn(ctx); err != nil {
+		if tableName, isNotExistsErr := t.isTableNotExistsError(err); isNotExistsErr {
+			return t.createTableAndReRunWithoutTransaction(ctx, []string{dbName}, tableName, fn)
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -79,7 +94,7 @@ func (t *transactor) isTableNotExistsError(err error) (string, bool) {
 	return messageParts[1], true
 }
 
-func (t *transactor) createTableAndReRun(ctx context.Context, dbNames []string, tableName string, fn clerk.TransactionFn) error {
+func (t *transactor) createTableAndReRunWithTransaction(ctx context.Context, dbNames []string, tableName string, fn clerk.TransactionFn) error {
 	return t.ExecuteTransaction(ctx, func(nestedCtx context.Context) error {
 		for _, dbName := range dbNames {
 			database := clerk.NewDatabase(dbName)
@@ -95,6 +110,22 @@ func (t *transactor) createTableAndReRun(ctx context.Context, dbNames []string, 
 
 		return fn(nestedCtx)
 	})
+}
+
+func (t *transactor) createTableAndReRunWithoutTransaction(ctx context.Context, dbNames []string, tableName string, fn clerk.TransactionFn) error {
+	for _, dbName := range dbNames {
+		database := clerk.NewDatabase(dbName)
+
+		if err := newCollectionCreator(t.conn, database).ExecuteCreate(ctx, &clerk.Create[*clerk.Collection]{
+			Data: []*clerk.Collection{
+				clerk.NewCollection(database, tableName),
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
+	return fn(ctx)
 }
 
 type transactionCtx struct {

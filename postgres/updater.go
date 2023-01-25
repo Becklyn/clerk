@@ -46,7 +46,7 @@ func (u *updater[T]) ExecuteUpdate(ctx context.Context, update *clerk.Update[T])
 	updateCtx, cancel := u.conn.config.GetContext(ctx)
 	defer cancel()
 
-	return u.transactor.ExecuteTransaction(updateCtx, func(ctx context.Context) error {
+	return u.transactor.ExecuteInTransactionIfAvailable(updateCtx, u.collection.Database.Name, u.collection.Name, func(ctx context.Context) error {
 		dbConn, release, err := u.conn.createOrUseDatabase(ctx, u.collection.Database.Name)
 		defer release()
 		if err != nil {

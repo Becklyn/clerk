@@ -70,7 +70,7 @@ func (q *querier[T]) ExecuteQuery(
 
 	var elements []T
 
-	if err := q.transactor.ExecuteTransaction(queryCtx, func(ctx context.Context) error {
+	if err := q.transactor.ExecuteInTransactionIfAvailable(queryCtx, q.collection.Database.Name, q.collection.Name, func(ctx context.Context) error {
 		dbConn, release, err := q.conn.createOrUseDatabase(ctx, q.collection.Database.Name)
 		defer release()
 		if err != nil {

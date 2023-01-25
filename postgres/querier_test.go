@@ -13,7 +13,7 @@ func Test_Querier_FindsASingleEntity(t *testing.T) {
 	conn := postgres.NewIntegrationConnection(t)
 
 	database := clerk.NewDatabase("test_database")
-	collection := clerk.NewCollection(database, "test_collection")
+	collection := clerk.NewCollection(database, "test_collection2")
 
 	type Message struct {
 		Id   string `bson:"_id"`

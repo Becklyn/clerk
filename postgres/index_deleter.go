@@ -39,7 +39,7 @@ func (d *indexDeleter) ExecuteDelete(
 	deleteCtx, cancel := d.conn.config.GetContext(ctx)
 	defer cancel()
 
-	if err := d.transactor.ExecuteTransaction(deleteCtx, func(ctx context.Context) error {
+	if err := d.transactor.ExecuteInTransactionIfAvailable(deleteCtx, d.collection.Database.Name, d.collection.Name, func(ctx context.Context) error {
 		dbConn, release, err := d.conn.createOrUseDatabase(ctx, d.collection.Database.Name)
 		defer release()
 		if err != nil {
