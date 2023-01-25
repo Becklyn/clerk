@@ -52,6 +52,7 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 		if tableName, isNotExistsErr := t.isTableNotExistsError(err); isNotExistsErr {
 			return t.createTableAndReRun(ctx, dbNames, tableName, fn)
 		}
+		return err
 	}
 
 	if !isNested {

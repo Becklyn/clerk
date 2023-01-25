@@ -3,7 +3,7 @@ package postgres_test
 import (
 	"context"
 	"errors"
-	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/Becklyn/clerk/v4"
@@ -85,7 +85,6 @@ func TestTransactor_Commit(t *testing.T) {
 		Single(context.Background())
 	assert.NoError(t, err)
 
-	fmt.Println(result)
 	assert.Equal(t, id, result.Id)
 }
 
@@ -126,4 +125,53 @@ func TestTransactor_Nested(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, id, result.Id)
+}
+
+func TestTransactor_ReUse(t *testing.T) {
+	conn := postgres.NewIntegrationConnection(t)
+	databaseOperator := postgres.NewDatabaseOperator(conn)
+	type Message struct {
+		Id   string `bson:"_id"`
+		Text string `bson:"text"`
+	}
+
+	database := clerk.NewDatabase("test_database")
+	collection := clerk.NewCollection(database, "test_collection")
+	operator := postgres.NewOperator[*Message](conn, collection)
+
+	id := uuid.NewV4().String()
+
+	wg := sync.WaitGroup{}
+	wg.Add(100)
+
+	for i := 0; i < 100; i++ {
+		go func() {
+			called := false
+			err := clerk.NewTransaction(databaseOperator).Run(context.Background(), func(ctx context.Context) error {
+				called = true
+				return operator.ExecuteUpdate(ctx, &clerk.Update[*Message]{
+					Data: &Message{
+						Id:   id,
+						Text: "text",
+					},
+					ShouldUpsert: true,
+					Filters: []clerk.Filter{
+						clerk.NewEquals("_id", id),
+					},
+				})
+			})
+			assert.NoError(t, err)
+			assert.True(t, called)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	results, err := clerk.NewQuery[*Message](operator).
+		Where(clerk.NewEquals("_id", id)).
+		All(context.Background())
+	assert.NoError(t, err)
+
+	assert.Len(t, results, 1)
 }
