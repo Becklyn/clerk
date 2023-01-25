@@ -1,10 +1,10 @@
-# v4.0.0-alpha.3
+# v4.0.0
 
-- (bug) Cleanup tests
-- (bug) Fix connection concurrency issues
-- (bug) Fix connection transaction issues
-- (bug) Use connection pool
-- (bug) Create postgres table if not exists on queries and upserts
+- (bug) Cleanup tests (postgres)
+- (bug) Fix connection concurrency issues (postgres)
+- (bug) Fix connection transaction issues (postgres)
+- (bug) Use connection pool (postgres)
+- (bug) Create table if not exists on queries and upserts (postgres)
 
 # v4.0.0-alpha.2
 
