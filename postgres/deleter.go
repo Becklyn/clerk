@@ -47,7 +47,7 @@ func (d *deleter[T]) ExecuteDelete(
 
 	var rowsAffected int
 
-	err = d.transactor.ExecuteInTransactionIfAvailable(queryCtx, d.collection.Database.Name, d.collection.Name, func(ctx context.Context) error {
+	err = d.transactor.executeInTransactionIfAvailable(queryCtx, d.collection.Database, func(ctx context.Context) error {
 		dbConn, release, err := d.conn.createOrUseDatabase(ctx, d.collection.Database.Name)
 		defer release()
 		if err != nil {

@@ -61,14 +61,14 @@ func (t *transactor) ExecuteTransaction(ctx context.Context, fn clerk.Transactio
 	return nil
 }
 
-func (t *transactor) ExecuteInTransactionIfAvailable(ctx context.Context, dbName string, tableName string, fn clerk.TransactionFn) error {
+func (t *transactor) executeInTransactionIfAvailable(ctx context.Context, database *clerk.Database, fn clerk.TransactionFn) error {
 	if _, isNested := newTransactionCtxFromCtx(ctx); isNested {
 		return t.ExecuteTransaction(ctx, fn)
 	}
 
 	if err := fn(ctx); err != nil {
 		if tableName, isNotExistsErr := t.isTableNotExistsError(err); isNotExistsErr {
-			return t.createTableAndReRunWithoutTransaction(ctx, []string{dbName}, tableName, fn)
+			return t.createTableAndReRunWithoutTransaction(ctx, []string{database.Name}, tableName, fn)
 		}
 		return err
 	}

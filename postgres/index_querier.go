@@ -53,7 +53,7 @@ func (q *indexQuerier) ExecuteQuery(
 
 	var indices []*clerk.Index
 
-	if err := q.transactor.ExecuteInTransactionIfAvailable(queryCtx, q.collection.Database.Name, q.collection.Name, func(ctx context.Context) error {
+	if err := q.transactor.executeInTransactionIfAvailable(queryCtx, q.collection.Database, func(ctx context.Context) error {
 		dbConn, release, err := q.conn.createOrUseDatabase(ctx, q.collection.Database.Name)
 		defer release()
 		if err != nil {

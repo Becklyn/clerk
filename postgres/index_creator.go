@@ -68,7 +68,7 @@ func (c *indexCreator) ExecuteCreate(
 
 		stmt := fmt.Sprintf("CREATE %sINDEX IF NOT EXISTS %s ON %s (%s)", unique, indexName, c.collection.Name, columns)
 
-		if err := c.transactor.ExecuteInTransactionIfAvailable(createCtx, c.collection.Database.Name, c.collection.Name, func(ctx context.Context) error {
+		if err := c.transactor.executeInTransactionIfAvailable(createCtx, c.collection.Database, func(ctx context.Context) error {
 			dbConn, release, err := c.conn.createOrUseDatabase(ctx, c.collection.Database.Name)
 			defer release()
 			if err != nil {
