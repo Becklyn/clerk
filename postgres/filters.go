@@ -21,10 +21,16 @@ func jsonKeyToSelector(column string, key string, value any) string {
 		parts = parts[1:]
 	}
 	return lo.Reduce(parts, func(acc string, part string, i int) string {
-		switch value.(type) {
+		switch v := value.(type) {
 		case string:
 			if i == len(parts)-1 {
 				return fmt.Sprintf("%s->>'%s'", acc, part)
+			}
+		case []any:
+			if i == len(parts)-1 && len(v) > 0 {
+				if _, ok := v[0].(string); ok {
+					return fmt.Sprintf("%s->>'%s'", acc, part)
+				}
 			}
 		}
 		return fmt.Sprintf("%s->'%s'", acc, part)

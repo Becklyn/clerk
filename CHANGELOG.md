@@ -1,3 +1,7 @@
+# v4.0.1
+
+- (bug) Fix slice filter function for postgres
+
 # v4.0.0
 
 - (bug) Cleanup tests (postgres)
