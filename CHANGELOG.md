@@ -1,3 +1,7 @@
+# v4.0.2
+
+- (internal) Update postgres adapter
+
 # v4.0.1
 
 - (bug) Fix slice filter function for postgres
