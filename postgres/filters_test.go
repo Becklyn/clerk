@@ -32,6 +32,11 @@ func Test_TypeCastSelector_SliceOfInt(t *testing.T) {
 	assert.Equal(t, "(selector)::int", selector)
 }
 
+func Test_TypeCastSelector_SliceOfInt_Empty(t *testing.T) {
+	selector := typeCastSelector("selector", []int{})
+	assert.Equal(t, "(selector)::int", selector)
+}
+
 func Test_TypeCastSelector_Float(t *testing.T) {
 	selector := typeCastSelector("selector", 1.0)
 	assert.Equal(t, "(selector)::float", selector)

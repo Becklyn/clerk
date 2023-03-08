@@ -1,3 +1,11 @@
+# v4.0.4
+
+- (bug) Do not panic on empty slice in `typeCastSelector` for postgres filter
+
+# v4.0.3
+
+- (internal) Update postgres adapter
+
 # v4.0.2
 
 - (internal) Update postgres adapter

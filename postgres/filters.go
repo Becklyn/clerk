@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -8,6 +9,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/samber/lo"
 )
+
+var ErrNoSelectorInEmptySlice = errors.New("no selector in empty sclice")
 
 func jsonKeyToSelector(column string, key string, value any) string {
 	parts := strings.Split(key, ".")
@@ -41,29 +44,32 @@ func typeCastSelector(selector string, value any) string {
 	switch v := value.(type) {
 	case int:
 		return fmt.Sprintf("(%s)::int", selector)
+	case []int:
+		return fmt.Sprintf("(%s)::int", selector)
 	case int32:
+		return fmt.Sprintf("(%s)::int", selector)
+	case []int32:
 		return fmt.Sprintf("(%s)::int", selector)
 	case int64:
 		return fmt.Sprintf("(%s)::bigint", selector)
+	case []int64:
+		return fmt.Sprintf("(%s)::bigint", selector)
 	case float32:
+		return fmt.Sprintf("(%s)::float", selector)
+	case []float32:
 		return fmt.Sprintf("(%s)::float", selector)
 	case float64:
 		return fmt.Sprintf("(%s)::float", selector)
+	case []float64:
+		return fmt.Sprintf("(%s)::float", selector)
 	case bool:
 		return fmt.Sprintf("(%s)::bool", selector)
-	case []int:
-		return typeCastSelector(selector, v[0])
-	case []int32:
-		return typeCastSelector(selector, v[0])
-	case []int64:
-		return typeCastSelector(selector, v[0])
-	case []float32:
-		return typeCastSelector(selector, v[0])
-	case []float64:
-		return typeCastSelector(selector, v[0])
 	case []bool:
-		return typeCastSelector(selector, v[0])
+		return fmt.Sprintf("(%s)::bool", selector)
 	case []any:
+		if len(v) == 0 {
+			return selector
+		}
 		return typeCastSelector(selector, v[0])
 	default:
 		return selector
