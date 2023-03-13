@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -9,8 +8,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/samber/lo"
 )
-
-var ErrNoSelectorInEmptySlice = errors.New("no selector in empty sclice")
 
 func jsonKeyToSelector(column string, key string, value any) string {
 	parts := strings.Split(key, ".")
@@ -203,6 +200,9 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			filter.Value(),
 		), nil
 	case *clerk.In:
+		if len(filter.Values()) == 0 {
+			return sq.Expr("1 = 2"), nil
+		}
 		selector := typeCastSelector(
 			jsonKeyToSelector(column, filter.Key(), filter.Values()),
 			filter.Values(),
@@ -213,6 +213,9 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			filter.Values()...,
 		), nil
 	case *clerk.NotIn:
+		if len(filter.Values()) == 0 {
+			return sq.Expr("1 = 1"), nil
+		}
 		selector := typeCastSelector(
 			jsonKeyToSelector(column, filter.Key(), filter.Values()),
 			filter.Values(),
@@ -223,6 +226,9 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			filter.Values()...,
 		), nil
 	case *clerk.InArray:
+		if len(filter.Values()) == 0 {
+			return sq.Expr("1 = 2"), nil
+		}
 		selector := jsonKeyToSelector(column, filter.Key(), filter.Values())
 		variables := setOfVariables(len(filter.Values()))
 		typeCastedValues := typeCastSelector("values", filter.Values())
@@ -231,6 +237,9 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			filter.Values()...,
 		), nil
 	case *clerk.NotInArray:
+		if len(filter.Values()) == 0 {
+			return sq.Expr("1 = 1"), nil
+		}
 		selector := jsonKeyToSelector(column, filter.Key(), filter.Values())
 		variables := setOfVariables(len(filter.Values()))
 		typeCastedValues := typeCastSelector("values", filter.Values())

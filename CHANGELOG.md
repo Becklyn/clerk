@@ -1,3 +1,7 @@
+# v4.0.5
+
+- (bug) Fix postgres `in` and `inArray` filters
+
 # v4.0.4
 
 - (bug) Do not panic on empty slice in `typeCastSelector` for postgres filter
