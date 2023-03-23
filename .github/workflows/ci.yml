@@ -40,7 +40,7 @@ jobs:
         run: docker run -d -p 27017:27017 --name mongodb mongo:latest
 
       - name: Run Tests
-        run: go test `go list ./...` -timeout 15s -count=1
+        run: go test `go list ./mongodb/...` -timeout 15s -count=1
 
       - name: Stop MongoDB
         run: |

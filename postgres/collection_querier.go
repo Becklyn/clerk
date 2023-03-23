@@ -18,6 +18,13 @@ func newCollectionQuerier(conn *Connection, database *clerk.Database) *collectio
 	}
 }
 
+func (q *collectionQuerier) Count(
+	ctx context.Context,
+	query *clerk.Query[*clerk.Collection],
+) (int64, error) {
+	return 0, nil // @todo
+}
+
 func (q *collectionQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Collection],

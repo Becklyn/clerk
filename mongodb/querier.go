@@ -21,6 +21,26 @@ func newQuerier[T any](connection *Connection, collection *clerk.Collection) *qu
 	}
 }
 
+func (q *querier[T]) Count(
+	ctx context.Context,
+	query *clerk.Query[T],
+) (int64, error) {
+	opts := options.Count()
+
+	filters, err := resolveFilters(query.Filters...)
+	if err != nil {
+		return 0, err
+	}
+
+	queryCtx, cancel := q.connection.config.GetContext(ctx)
+	defer cancel()
+
+	return q.connection.client.
+		Database(q.collection.Database.Name).
+		Collection(q.collection.Name).
+		CountDocuments(queryCtx, filters, opts)
+}
+
 func (q *querier[T]) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[T],

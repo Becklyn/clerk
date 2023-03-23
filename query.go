@@ -61,3 +61,7 @@ func (q *Query[T]) Single(ctx context.Context) (T, error) {
 	}
 	return <-channel, nil
 }
+
+func (q *Query[T]) Count(ctx context.Context) (int64, error) {
+	return q.querier.Count(ctx, q)
+}

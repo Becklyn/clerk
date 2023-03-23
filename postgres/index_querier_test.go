@@ -9,6 +9,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_IndexQuerier_Count(t *testing.T) {
+	conn := postgres.NewIntegrationConnection(t)
+
+	database := clerk.NewDatabase("test_database")
+	collection := clerk.NewCollection(database, "test_collection")
+
+	indexOperator := postgres.NewIndexOperator(conn, collection)
+
+	total, err := clerk.NewQuery[*clerk.Index](indexOperator).
+		Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+}
+
 func Test_IndexQuerier_FindsAllIndices(t *testing.T) {
 	conn := postgres.NewIntegrationConnection(t)
 

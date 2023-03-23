@@ -17,6 +17,45 @@ func newDatabaseQuerier(conn *Connection) *databaseQuerier {
 	}
 }
 
+func (q *databaseQuerier) Count(
+	ctx context.Context,
+	query *clerk.Query[*clerk.Database],
+) (int64, error) {
+	condition, err := filtersToCondition("", query.Filters...)
+	if err != nil {
+		return 0, err
+	}
+
+	stat, vals, err := statementBuilder().
+		Select("Count(*)").
+		From("pg_database").
+		Where(condition).
+		ToSql()
+	if err != nil {
+		return 0, err
+	}
+	stat = strings.ReplaceAll(stat, "name", "datname")
+
+	queryCtx, cancel := q.conn.config.GetContext(ctx)
+	defer cancel()
+
+	rows, err := q.conn.pool.Query(queryCtx, stat, vals...)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var total int64
+
+	for rows.Next() {
+		if err := rows.Scan(&total); err != nil {
+			return 0, err
+		}
+	}
+
+	return total, nil
+}
+
 func (q *databaseQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Database],

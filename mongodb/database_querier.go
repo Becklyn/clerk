@@ -17,6 +17,25 @@ func newDatabaseQuerier(connection *Connection) *databaseQuerier {
 	}
 }
 
+func (q *databaseQuerier) Count(
+	ctx context.Context,
+	query *clerk.Query[*clerk.Database],
+) (int64, error) {
+	opts := options.ListDatabases()
+
+	filters, err := resolveFilters(query.Filters...)
+	if err != nil {
+		return 0, err
+	}
+
+	queryCtx, cancel := q.connection.config.GetContext(ctx)
+	defer cancel()
+
+	names, err := q.connection.client.
+		ListDatabaseNames(queryCtx, filters, opts)
+	return int64(len(names)), err
+}
+
 func (q *databaseQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Database],

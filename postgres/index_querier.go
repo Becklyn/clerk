@@ -26,6 +26,60 @@ func newIndexQuerier(conn *Connection, collection *clerk.Collection) *indexQueri
 	}
 }
 
+func (q *indexQuerier) Count(
+	ctx context.Context,
+	query *clerk.Query[*clerk.Index],
+) (int64, error) {
+	var name string
+	for _, filter := range query.Filters {
+		switch filter.(type) {
+		case *clerk.Equals:
+			if strings.ToLower(filter.Key()) == "name" {
+				name = fmt.Sprintf("%s_%s", q.collection.Name, filter.Value().(string))
+			}
+		}
+	}
+
+	selectFn := func(ctx context.Context, dbConn *pgx.Conn) (pgx.Rows, error) {
+		if name == "" {
+			return dbConn.Query(ctx, "SELECT Count(*) FROM pg_indexes WHERE tablename = $1", q.collection.Name)
+		}
+
+		return dbConn.Query(ctx, "SELECT Count(*) FROM pg_indexes WHERE tablename = $1 AND indexname = $2", q.collection.Name, name)
+	}
+
+	queryCtx, cancel := q.conn.config.GetContext(ctx)
+	defer cancel()
+
+	var total int64
+
+	if err := q.transactor.executeInTransactionIfAvailable(queryCtx, q.collection.Database, func(ctx context.Context) error {
+		dbConn, release, err := q.conn.createOrUseDatabase(ctx, q.collection.Database.Name)
+		defer release()
+		if err != nil {
+			return err
+		}
+
+		rows, err := selectFn(ctx, dbConn)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			if err := rows.Scan(&total); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
 func (q *indexQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Index],
@@ -40,7 +94,7 @@ func (q *indexQuerier) ExecuteQuery(
 		}
 	}
 
-	createFn := func(ctx context.Context, dbConn *pgx.Conn) (pgx.Rows, error) {
+	selectFn := func(ctx context.Context, dbConn *pgx.Conn) (pgx.Rows, error) {
 		if name == "" {
 			return dbConn.Query(ctx, "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = $1", q.collection.Name)
 		}
@@ -60,7 +114,7 @@ func (q *indexQuerier) ExecuteQuery(
 			return err
 		}
 
-		rows, err := createFn(ctx, dbConn)
+		rows, err := selectFn(ctx, dbConn)
 		if err != nil {
 			return err
 		}

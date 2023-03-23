@@ -1,3 +1,7 @@
+# v4.1.0
+
+- (feature) Add `Count` operation to `Querier` interface
+
 # v4.0.5
 
 - (bug) Fix postgres `in` and `inArray` filters

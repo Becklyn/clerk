@@ -20,6 +20,27 @@ func newIndexQuerier(connection *Connection, collection *clerk.Collection) *inde
 	}
 }
 
+func (q *indexQuerier) Count(
+	ctx context.Context,
+	query *clerk.Query[*clerk.Index],
+) (int64, error) {
+	queryCtx, cancel := q.connection.config.GetContext(ctx)
+	defer cancel()
+
+	cursor, err := q.connection.client.
+		Database(q.collection.Database.Name).
+		Collection(q.collection.Name).
+		Indexes().
+		List(queryCtx)
+	if err != nil {
+		return 0, err
+	}
+
+	var indices []*clerk.Index
+	err = cursor.All(queryCtx, &indices)
+	return int64(len(indices)), err
+}
+
 func (q *indexQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Index],

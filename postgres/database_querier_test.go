@@ -9,6 +9,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_DatabaseQuerier_Count(t *testing.T) {
+	conn := postgres.NewIntegrationConnection(t)
+
+	databaseOperator := postgres.NewDatabaseOperator(conn)
+
+	total, err := clerk.NewQuery[*clerk.Database](databaseOperator).
+		Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+}
+
 func Test_DatabaseQuerier_FindsAllDatabases(t *testing.T) {
 	conn := postgres.NewIntegrationConnection(t)
 

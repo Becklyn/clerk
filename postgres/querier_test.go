@@ -10,6 +10,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_Querier_Count(t *testing.T) {
+	conn := postgres.NewIntegrationConnection(t)
+
+	database := clerk.NewDatabase("test_database")
+	collection := clerk.NewCollection(database, "test_collection")
+
+	type Message struct {
+		Id   string `bson:"_id"`
+		Text string `bson:"text"`
+	}
+
+	operator := postgres.NewOperator[*Message](conn, collection)
+
+	result, err := clerk.NewQuery[*Message](operator).
+		Where(clerk.NewEquals("_id", "2")).
+		Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), result)
+}
+
 func Test_Querier_FindsASingleEntity(t *testing.T) {
 	conn := postgres.NewIntegrationConnection(t)
 

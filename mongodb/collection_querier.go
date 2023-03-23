@@ -20,6 +20,27 @@ func newCollectionQuerier(connection *Connection, database *clerk.Database) *col
 	}
 }
 
+func (q *collectionQuerier) Count(
+	ctx context.Context,
+	query *clerk.Query[*clerk.Collection],
+) (int64, error) {
+	opts := options.ListCollections()
+
+	filters, err := resolveFilters(query.Filters...)
+	if err != nil {
+		return 0, err
+	}
+
+	queryCtx, cancel := q.connection.config.GetContext(ctx)
+	defer cancel()
+
+	names, err := q.connection.client.
+		Database(q.database.Name).
+		ListCollectionNames(queryCtx, filters, opts)
+
+	return int64(len(names)), err
+}
+
 func (q *collectionQuerier) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[*clerk.Collection],

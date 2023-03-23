@@ -24,6 +24,61 @@ func newQuerier[T any](conn *Connection, collection *clerk.Collection) *querier[
 	}
 }
 
+func (q *querier[T]) Count(
+	ctx context.Context,
+	query *clerk.Query[T],
+) (int64, error) {
+	statBuilder := statementBuilder().
+		Select("Count(*)").
+		From(q.collection.Name)
+
+	condition, err := filtersToCondition("data", query.Filters...)
+	if err != nil {
+		return 0, err
+	}
+
+	if condition != nil {
+		statBuilder = statBuilder.Where(condition)
+	}
+
+	stat, vals, err := statBuilder.
+		ToSql()
+	if err != nil {
+		return 0, err
+	}
+
+	queryCtx, cancel := q.conn.config.GetContext(ctx)
+	defer cancel()
+
+	var total int64
+
+	if err := q.transactor.executeInTransactionIfAvailable(queryCtx, q.collection.Database, func(ctx context.Context) error {
+		dbConn, release, err := q.conn.createOrUseDatabase(ctx, q.collection.Database.Name)
+		defer release()
+		if err != nil {
+			return err
+		}
+
+		rows, err := dbConn.Query(ctx, stat, vals...)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			if err := rows.Scan(&total); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return 0, err
+	}
+
+	return total, nil // @todo
+}
+
 func (q *querier[T]) ExecuteQuery(
 	ctx context.Context,
 	query *clerk.Query[T],
