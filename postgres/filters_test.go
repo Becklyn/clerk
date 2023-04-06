@@ -8,17 +8,17 @@ import (
 )
 
 func Test_JsonKeyToSelector(t *testing.T) {
-	selector := jsonKeyToSelector("data", "a.b.c", nil)
+	selector := jsonKeyToSelector("data", "a.b.c", nil, true)
 	assert.Equal(t, "data->'a'->'b'->'c'", selector)
 }
 
 func Test_JsonKeyToSelector_WithEmptyColumn(t *testing.T) {
-	selector := jsonKeyToSelector("", "a.b.c", nil)
+	selector := jsonKeyToSelector("", "a.b.c", nil, true)
 	assert.Equal(t, "a->'b'->'c'", selector)
 }
 
 func Test_JsonKeyToSelector_WithStringValue(t *testing.T) {
-	selector := jsonKeyToSelector("data", "a.b.c", "foo")
+	selector := jsonKeyToSelector("data", "a.b.c", "foo", true)
 	assert.Equal(t, "data->'a'->'b'->>'c'", selector)
 }
 
@@ -242,7 +242,7 @@ func Test_FiltersToCondition_WithInArrayFilter(t *testing.T) {
 	assert.NoError(t, err)
 	stat, vals, err := condition.ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, "EXISTS( SELECT TRUE FROM jsonb_array_elements(data->'a') values WHERE (values)::int IN (?, ?) )", stat)
+	assert.Equal(t, "EXISTS( SELECT TRUE FROM jsonb_array_elements(data->'a') AS x(o) WHERE x.o IN (?, ?) )", stat)
 	assert.Equal(t, []any{1, 2}, vals)
 }
 
@@ -254,6 +254,6 @@ func Test_FiltersToCondition_WithNotInArrayFilter(t *testing.T) {
 	assert.NoError(t, err)
 	stat, vals, err := condition.ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, "NOT EXISTS( SELECT TRUE FROM jsonb_array_elements(data->'a') values WHERE (values)::int IN (?, ?) )", stat)
+	assert.Equal(t, "NOT EXISTS( SELECT TRUE FROM jsonb_array_elements(data->'a') AS x(o) WHERE x.o IN (?, ?) )", stat)
 	assert.Equal(t, []any{1, 2}, vals)
 }

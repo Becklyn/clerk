@@ -58,7 +58,7 @@ func (c *indexCreator) ExecuteCreate(
 				return "ASC"
 			}()
 
-			fieldName := jsonKeyToSelector("data", field.Key, nil)
+			fieldName := jsonKeyToSelector("data", field.Key, nil, true)
 
 			if i == 0 {
 				return fmt.Sprintf("(%s) %s", fieldName, order)
