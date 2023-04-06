@@ -95,7 +95,7 @@ func (q *querier[T]) ExecuteQuery(
 
 	if len(query.Sorting) > 0 {
 		for key, order := range query.Sorting {
-			keySelector := jsonKeyToSelector("data", key, nil)
+			keySelector := jsonKeyToSelector("data", key, nil, true)
 
 			if order.IsAscending {
 				statBuilder = statBuilder.OrderBy(keySelector)

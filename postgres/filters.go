@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func jsonKeyToSelector(column string, key string, value any) string {
+func jsonKeyToSelector(column string, key string, value any, escapeToString bool) string {
 	parts := strings.Split(key, ".")
 	initial := func() string {
 		if column == "" {
@@ -24,12 +24,20 @@ func jsonKeyToSelector(column string, key string, value any) string {
 		switch v := value.(type) {
 		case string:
 			if i == len(parts)-1 {
-				return fmt.Sprintf("%s->>'%s'", acc, part)
+				if escapeToString {
+					return fmt.Sprintf("%s->>'%s'", acc, part)
+				} else {
+					return fmt.Sprintf("%s->'%s'", acc, part)
+				}
 			}
 		case []any:
 			if i == len(parts)-1 && len(v) > 0 {
 				if _, ok := v[0].(string); ok {
-					return fmt.Sprintf("%s->>'%s'", acc, part)
+					if escapeToString {
+						return fmt.Sprintf("%s->>'%s'", acc, part)
+					} else {
+						return fmt.Sprintf("%s->'%s'", acc, part)
+					}
 				}
 			}
 		}
@@ -126,7 +134,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		return sq.Or{left, right}, nil
 	case *clerk.Equals:
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Value()),
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
 		return sq.Expr(
@@ -135,7 +143,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		), nil
 	case *clerk.NotEquals:
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Value()),
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
 		return sq.Expr(
@@ -144,7 +152,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		), nil
 	case *clerk.GreaterThan:
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Value()),
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
 		return sq.Expr(
@@ -153,7 +161,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		), nil
 	case *clerk.GreaterThanOrEquals:
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Value()),
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
 		return sq.Expr(
@@ -162,7 +170,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		), nil
 	case *clerk.LessThan:
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Value()),
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
 		return sq.Expr(
@@ -171,7 +179,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		), nil
 	case *clerk.LessThanOrEquals:
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Value()),
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
 		return sq.Expr(
@@ -192,7 +200,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		), nil
 	case *clerk.Regex:
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Value()),
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
 		return sq.Expr(
@@ -204,7 +212,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			return sq.Expr("1 = 2"), nil
 		}
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Values()),
+			jsonKeyToSelector(column, filter.Key(), filter.Values(), true),
 			filter.Values(),
 		)
 		variables := setOfVariables(len(filter.Values()))
@@ -217,7 +225,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			return sq.Expr("1 = 1"), nil
 		}
 		selector := typeCastSelector(
-			jsonKeyToSelector(column, filter.Key(), filter.Values()),
+			jsonKeyToSelector(column, filter.Key(), filter.Values(), true),
 			filter.Values(),
 		)
 		variables := setOfVariables(len(filter.Values()))
@@ -229,22 +237,20 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		if len(filter.Values()) == 0 {
 			return sq.Expr("1 = 2"), nil
 		}
-		selector := jsonKeyToSelector(column, filter.Key(), filter.Values())
+		selector := jsonKeyToSelector(column, filter.Key(), filter.Values(), false)
 		variables := setOfVariables(len(filter.Values()))
-		typeCastedValues := typeCastSelector("values", filter.Values())
 		return sq.Expr(
-			fmt.Sprintf("EXISTS( SELECT TRUE FROM jsonb_array_elements(%s) values WHERE %s IN %s )", selector, typeCastedValues, variables),
+			fmt.Sprintf("EXISTS( SELECT TRUE FROM jsonb_array_elements(%s) AS x(o) WHERE x.o IN %s )", selector, variables),
 			filter.Values()...,
 		), nil
 	case *clerk.NotInArray:
 		if len(filter.Values()) == 0 {
 			return sq.Expr("1 = 1"), nil
 		}
-		selector := jsonKeyToSelector(column, filter.Key(), filter.Values())
+		selector := jsonKeyToSelector(column, filter.Key(), filter.Values(), false)
 		variables := setOfVariables(len(filter.Values()))
-		typeCastedValues := typeCastSelector("values", filter.Values())
 		return sq.Expr(
-			fmt.Sprintf("NOT EXISTS( SELECT TRUE FROM jsonb_array_elements(%s) values WHERE %s IN %s )", selector, typeCastedValues, variables),
+			fmt.Sprintf("NOT EXISTS( SELECT TRUE FROM jsonb_array_elements(%s) AS x(o) WHERE x.o IN %s )", selector, variables),
 			filter.Values()...,
 		), nil
 	default:
