@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -237,7 +238,15 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		if len(filter.Values()) == 0 {
 			return sq.Expr("1 = 2"), nil
 		}
-		selector := jsonKeyToSelector(column, filter.Key(), filter.Values(), false)
+		values := filter.Values()
+		for i, value := range values {
+			valueAsJson, err := json.Marshal(value)
+			if err != nil {
+				return nil, err
+			}
+			values[i] = string(valueAsJson)
+		}
+		selector := jsonKeyToSelector(column, filter.Key(), values, false)
 		variables := setOfVariables(len(filter.Values()))
 		return sq.Expr(
 			fmt.Sprintf("EXISTS( SELECT TRUE FROM jsonb_array_elements(%s) AS x(o) WHERE x.o IN %s )", selector, variables),
@@ -246,6 +255,14 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 	case *clerk.NotInArray:
 		if len(filter.Values()) == 0 {
 			return sq.Expr("1 = 1"), nil
+		}
+		values := filter.Values()
+		for i, value := range values {
+			valueAsJson, err := json.Marshal(value)
+			if err != nil {
+				return nil, err
+			}
+			values[i] = string(valueAsJson)
 		}
 		selector := jsonKeyToSelector(column, filter.Key(), filter.Values(), false)
 		variables := setOfVariables(len(filter.Values()))
