@@ -1,3 +1,7 @@
+# v4.1.3
+
+- (bug) Fix equals and not equals filter handling nil values for postgres
+
 # v4.1.2
 
 - (bug) Add missing json marshal of values (not)inArray filter in postgres operator

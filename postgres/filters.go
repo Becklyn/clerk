@@ -138,6 +138,13 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
+
+		if filter.Value() == nil {
+			return sq.Expr(
+				fmt.Sprintf("%s IS NULL", selector),
+			), nil
+		}
+
 		return sq.Expr(
 			fmt.Sprintf("%s = ?", selector),
 			filter.Value(),
@@ -147,6 +154,13 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
 			filter.Value(),
 		)
+
+		if filter.Value() == nil {
+			return sq.Expr(
+				fmt.Sprintf("%s IS NOT NULL", selector),
+			), nil
+		}
+
 		return sq.Expr(
 			fmt.Sprintf("%s != ?", selector),
 			filter.Value(),
