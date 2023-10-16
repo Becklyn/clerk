@@ -461,3 +461,79 @@ func (l *Regex) Value() any {
 func (l *Regex) Values() []any {
 	return nil
 }
+
+type Like struct {
+	key               string
+	value             string
+	isCaseInsensitive bool
+}
+
+func NewLike(key string, value string, isCaseInsensitive bool) *Like {
+	return &Like{
+		key:               key,
+		value:             value,
+		isCaseInsensitive: isCaseInsensitive,
+	}
+}
+
+func (l *Like) Left() Filter {
+	return nil
+}
+
+func (l *Like) Right() Filter {
+	return nil
+}
+
+func (l *Like) Key() string {
+	return l.key
+}
+
+func (l *Like) Value() any {
+	return l.value
+}
+
+func (l *Like) Values() []any {
+	return nil
+}
+
+func (l *Like) IsCaseInsensitive() bool {
+	return l.isCaseInsensitive
+}
+
+type NotLike struct {
+	key               string
+	value             string
+	isCaseInsensitive bool
+}
+
+func NewNotLike(key string, value string, isCaseInsensitive bool) *NotLike {
+	return &NotLike{
+		key:               key,
+		value:             value,
+		isCaseInsensitive: isCaseInsensitive,
+	}
+}
+
+func (l *NotLike) Left() Filter {
+	return nil
+}
+
+func (l *NotLike) Right() Filter {
+	return nil
+}
+
+func (l *NotLike) Key() string {
+	return l.key
+}
+
+func (l *NotLike) Value() any {
+	return l.value
+}
+
+func (l *NotLike) Values() []any {
+	return nil
+}
+
+func (l *NotLike) IsCaseInsensitive() bool {
+	return l.isCaseInsensitive
+}

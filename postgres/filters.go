@@ -165,6 +165,50 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 			fmt.Sprintf("%s != ?", selector),
 			filter.Value(),
 		), nil
+	case *clerk.Like:
+		selector := typeCastSelector(
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
+			filter.Value(),
+		)
+
+		if filter.Value() == nil {
+			return sq.Expr(
+				fmt.Sprintf("%s IS NULL", selector),
+			), nil
+		}
+
+		if filter.IsCaseInsensitive() {
+			return sq.Expr(
+				fmt.Sprintf("%s ILIKE ?", selector),
+				filter.Value(),
+			), nil
+		}
+		return sq.Expr(
+			fmt.Sprintf("%s LIKE ?", selector),
+			filter.Value(),
+		), nil
+	case *clerk.NotLike:
+		selector := typeCastSelector(
+			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
+			filter.Value(),
+		)
+
+		if filter.Value() == nil {
+			return sq.Expr(
+				fmt.Sprintf("%s IS NOT NULL", selector),
+			), nil
+		}
+
+		if filter.IsCaseInsensitive() {
+			return sq.Expr(
+				fmt.Sprintf("%s NOT ILIKE ?", selector),
+				filter.Value(),
+			), nil
+		}
+		return sq.Expr(
+			fmt.Sprintf("%s NOT LIKE ?", selector),
+			filter.Value(),
+		), nil
 	case *clerk.GreaterThan:
 		selector := typeCastSelector(
 			jsonKeyToSelector(column, filter.Key(), filter.Value(), true),
