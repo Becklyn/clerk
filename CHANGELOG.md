@@ -1,3 +1,7 @@
+# v4.2.1
+
+-   (bug) Fix not equality checks for postgres
+
 # v4.2.0
 
 -   (feature) Add like filter for postgres

@@ -162,7 +162,7 @@ func filterToCondition(column string, filter clerk.Filter) (sq.Sqlizer, error) {
 		}
 
 		return sq.Expr(
-			fmt.Sprintf("%s != ?", selector),
+			fmt.Sprintf("%s IS DISTINCT FROM ?", selector),
 			filter.Value(),
 		), nil
 	case *clerk.Like:
